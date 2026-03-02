@@ -3041,6 +3041,11 @@ function highlightTreeNode(srcip,dstip,svcName){
 // ================================================================
 // POLICY SEARCH LIST
 // ================================================================
+function polLabel(id,p){
+  if(p.source==='pa')return p.name;
+  const hasName=p.name&&p.name!==`Policy-${id}`;
+  return hasName?`ID${id} - ${p.name}`:`ID${id}`;
+}
 function renderPolList(query=''){
   const list=document.getElementById('pol-list');
   const input=document.getElementById('pol-search');
@@ -3049,10 +3054,10 @@ function renderPolList(query=''){
   const q=query.toLowerCase().trim();
   const filtered=q?pols.filter(([id,p])=>p.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)):pols;
   if(!filtered.length){list.innerHTML='<div class="pol-none">No match</div>';list.style.display='block';return;}
-  list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}">${p.name}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length.toLocaleString('fr-FR')} fl.</span></div>`).join('');
+  list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}">${polLabel(id,p)}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length.toLocaleString('fr-FR')} fl.</span></div>`).join('');
   list.querySelectorAll('.pol-item').forEach(el=>el.addEventListener('click',()=>{
     const pid=el.dataset.pid;
-    input.value=S.policies[pid]?.name||pid;
+    input.value=polLabel(pid,S.policies[pid]);
     list.style.display='none';
     loadPolicy(pid);
   }));
