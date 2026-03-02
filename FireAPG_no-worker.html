@@ -2343,7 +2343,7 @@ function parseFortiObjDB(text){
     if(line==='config system zone'){section='zone';inSdwanCtx=false;continue;}
     // "config members" inside sdwan context = sdwan member list
     if(line==='config members'&&inSdwanCtx){section='sdwan';continue;}
-    if(line==='end'&&section){commit();section=null;if(section==='sdwan')inSdwanCtx=false;continue;}
+    if(line==='end'&&section){commit();const wasSdwan=section==='sdwan';section=null;if(wasSdwan)inSdwanCtx=false;continue;}
     if(!section)continue;
     const em=line.match(/^edit\s+"?([^"]+)"?$/);
     if(em){commit();curName=em[1];curObj={};continue;}
