@@ -543,7 +543,7 @@ input[type=range]::-webkit-slider-thumb{
     <div class="logo-ic">🔥</div>
     <div class="logo-text">
       <div class="logo-name">Fire<span>APG</span></div>
-      <div class="logo-ver">v0.13 · Zones · Free Navigation</div>
+      <div class="logo-ver">v0.14 · Zones · Free Navigation</div>
     </div>
   </div>
   <div class="hstat">
@@ -835,7 +835,7 @@ input[type=range]::-webkit-slider-thumb{
 
 <script>
 // ================================================================
-// FIREAPG v0.13
+// FIREAPG v0.14
 // Behavioral clustering · Service permissiveness · Existing rules
 // Overlap detection · Auto-optimize · Zones · Flow Lens free navigation
 // ================================================================
@@ -2308,8 +2308,9 @@ function updateUI(){
 // OBJECT DATABASE — PARSE & RESOLVE
 // ================================================================
 function parseFortiObjDB(text){
-  const db={addr:{},addr6:{},svc:{},zone:{}};
+  const db={addr:{},addr6:{},svc:{},zone:{},sdwan:{}};
   let section=null,curName=null,curObj={};
+  let inSdwanCtx=false; // true once we see a sdwan context marker
   const commit=()=>{
     if(!curName)return;
     if(section==='addr')db.addr[curName]={...curObj};
@@ -2322,16 +2323,27 @@ function parseFortiObjDB(text){
           if(iface)db.zone[iface]=curName;
         });
       }
+    } else if(section==='sdwan'){
+      // sdwan member: map each physical interface → its sdwan zone name
+      if(curObj.interface&&curObj.zone){
+        db.sdwan[curObj.interface]=curObj.zone;
+      }
     }
     curName=null;curObj={};
   };
   for(const raw of text.split('\n')){
     const line=raw.trim();
-    if(line==='config firewall address'){section='addr';continue;}
-    if(line==='config firewall address6'){section='addr6';continue;}
-    if(line==='config firewall service custom'){section='svc';continue;}
-    if(line==='config system zone'){section='zone';continue;}
-    if(line==='end'&&section){commit();section=null;continue;}
+    // Detect sdwan context from CLI prompt or config command
+    if(!inSdwanCtx&&(line.includes('conf system sdwan')||line.includes('(sdwan)'))){
+      inSdwanCtx=true;
+    }
+    if(line==='config firewall address'){section='addr';inSdwanCtx=false;continue;}
+    if(line==='config firewall address6'){section='addr6';inSdwanCtx=false;continue;}
+    if(line==='config firewall service custom'){section='svc';inSdwanCtx=false;continue;}
+    if(line==='config system zone'){section='zone';inSdwanCtx=false;continue;}
+    // "config members" inside sdwan context = sdwan member list
+    if(line==='config members'&&inSdwanCtx){section='sdwan';continue;}
+    if(line==='end'&&section){commit();const wasSdwan=section==='sdwan';section=null;if(wasSdwan)inSdwanCtx=false;continue;}
     if(!section)continue;
     const em=line.match(/^edit\s+"?([^"]+)"?$/);
     if(em){commit();curName=em[1];curObj={};continue;}
@@ -2373,7 +2385,7 @@ function parseFortiObjDB(text){
       if(protoNum)svcIndex[`${protoNum}:${port}`]=name;
     }
   }
-  return{addrIndex,addr6Index,svcIndex,zone:db.zone||{}};
+  return{addrIndex,addr6Index,svcIndex,zone:db.zone||{},sdwan:db.sdwan||{}};
 }
 
 function parsePAObjDB(text){
@@ -2494,6 +2506,8 @@ function zoneForIntf(intf){
   for(const db of[S.objDb.forti,S.objDb.pa]){
     if(db.zone&&db.zone[intf])return db.zone[intf];
   }
+  // Fallback: check SDWAN member map (interface → sdwan zone)
+  if(S.objDb.forti.sdwan&&S.objDb.forti.sdwan[intf])return S.objDb.forti.sdwan[intf];
   return '';
 }
 function lookupObjName(cidr,isV6){
@@ -2968,19 +2982,21 @@ function renderExplorer(){
       S.expDrill=[...drill,{dim,value:k}];
       S.expSearch='';const srch=document.getElementById('fl-search');if(srch)srch.value='';
       renderExplorer();
-    } else if(dim==='svc'){
-      const srcStep=drill.find(d=>d.dim==='src');
-      const dstStep=drill.find(d=>d.dim==='dst');
-      if(srcStep&&dstStep)highlightTreeNode(srcStep.value,k);
+    } else {
+      // 3rd level: combine drill (2 steps) + this click to get src/dst/svc regardless of dim order
+      const allSteps=[...drill,{dim,value:k}];
+      const srcStep=allSteps.find(d=>d.dim==='src');
+      const dstStep=allSteps.find(d=>d.dim==='dst');
+      const svcStep=allSteps.find(d=>d.dim==='svc');
+      if(srcStep&&dstStep)highlightTreeNode(srcStep.value,dstStep.value,svcStep?.value||null);
     }
   }));
 }
 
-function highlightTreeNode(srcip,svcName){
+function highlightTreeNode(srcip,dstip,svcName){
   // Find the node in the tree that covers this src+dst+svc combination
-  const dstStep=S.expDrill.find(d=>d.dim==='dst');
-  const dst=dstStep?.value||null;
-  if(!S.tree||!srcip||!dst||!svcName)return;
+  const dst=dstip||null;
+  if(!S.tree||!srcip||!dst)return;
 
   // Find all active nodes covering this flow
   const active=getAllActive(S.tree);
@@ -3142,7 +3158,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     S.anchorMode='auto';S.fixSrc=false;S.fixDst=false;
     S.nrMode='none';S.nrExcludedDsts=new Set();
     S.fileSource='forti';S.expDrill=[];S.expSearch='';
-    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{}},pa:{addr:{},svc:{},zone:{}}};
+    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{},sdwan:{}},pa:{addr:{},svc:{},zone:{}}};
     S.showObjNames=false;S._highlightId=null;
     // Reset UI elements
     document.getElementById('finfo').style.display='none';
@@ -3284,17 +3300,22 @@ document.addEventListener('DOMContentLoaded',()=>{
       {label:'IPv6 address objects',cmd:'show firewall address6',note:''},
       {label:'Service objects',cmd:'show firewall service custom',note:''},
       {label:'Zone definitions',cmd:'show system zone',note:''},
+      {label:'SD-WAN members (optional — resolves SDWAN interfaces to zones)',cmd:'conf system sdwan\nshow full-configuration members\nend',multiline:true,note:''},
     ];
     const noteHtml=isPA?'<div style="color:var(--t3);font-style:italic;margin-bottom:8px">⚠ Must be in configure context</div>':'';
-    panel.innerHTML=noteHtml+cmds.map(c=>`
-      <div style="margin-bottom:7px">
+    panel.innerHTML=noteHtml+cmds.map(c=>{
+      const escapedCmd=c.cmd.replace(/'/g,"\\'").replace(/\n/g,'\\n');
+      const displayCmd=c.multiline
+        ?c.cmd.split('\n').map(l=>`<span style="display:block">${l}</span>`).join('')
+        :c.cmd;
+      return`<div style="margin-bottom:7px">
         <div style="color:var(--t3);font-size:10px;margin-bottom:2px">${c.label}</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <code style="flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx)">${c.cmd}</code>
-          <button class="btn sm" style="flex-shrink:0;padding:3px 8px;font-size:10px" onclick="navigator.clipboard.writeText('${c.cmd}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>
+        <div style="display:flex;align-items:flex-start;gap:6px">
+          <code style="flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx);white-space:pre">${displayCmd}</code>
+          <button class="btn sm" style="flex-shrink:0;padding:3px 8px;font-size:10px;margin-top:1px" onclick="navigator.clipboard.writeText('${escapedCmd}'.replace(/\\\\n/g,'\\n')).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   });
 
   // Obj-DB main section — collapsible toggle
@@ -3317,18 +3338,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       S.objDb[vendor].addr6Index=db.addr6Index;
       S.objDb[vendor].svcIndex=db.svcIndex;
       S.objDb[vendor].zone=db.zone||{};
+      if(vendor==='forti')S.objDb.forti.sdwan=db.sdwan||{};
       const aCount=Object.keys(db.addrIndex||{}).length+Object.keys(db.addr6Index||{}).length;
       const sCount=Object.keys(db.svcIndex||{}).length;
       const zCount=Object.keys(db.zone||{}).length;
+      const sdCount=vendor==='forti'?Object.keys(db.sdwan||{}).length:0;
       const badge=document.getElementById('objdb-main-badge');
-      badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zCount} zones`:''}`;
+      badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zCount} zones`:''}${sdCount?` · ${sdCount} sdwan`:''}`;
       badge.classList.remove('empty');
       document.getElementById('objdb-clear-btn').style.display='inline';
       document.getElementById('obj-names-toggle').style.display='flex';
       // Auto-activate show object names
       S.showObjNames=true;
       document.getElementById('obj-names-toggle').classList.add('act');
-      setStatus(`Object DB: ${aCount} addresses, ${sCount} services loaded`,true);
+      setStatus(`Object DB: ${aCount} addresses, ${sCount} services${sdCount?`, ${sdCount} SDWAN members`:''} loaded`,true);
       if(S.tree){renderTree();refreshHub();}
     };
     r.readAsText(file);
@@ -3343,7 +3366,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Clear obj-db
   document.getElementById('objdb-clear-btn').addEventListener('click',e=>{
     e.stopPropagation();
-    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{}},pa:{addr:{},svc:{},zone:{}}};
+    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{},sdwan:{}},pa:{addr:{},svc:{},zone:{}}};
     S.showObjNames=false;
     const badge=document.getElementById('objdb-main-badge');
     badge.textContent='Not loaded';badge.classList.add('empty');
