@@ -871,7 +871,7 @@ function nrCategory(flow){
 }
 
 let S={
-  policies:{},selPol:null,flows:[],tree:null,perm:80,
+  policies:{},selPol:null,flows:[],rawFlowMap:new Map(),tree:null,perm:80,
   curve:{pts:[],nat:[]},optimalPerm:null,
   anchorMode:'auto',
   fixSrc:false, fixDst:false,
@@ -1872,6 +1872,11 @@ function dedup(flows){
   const seen=new Set();
   return flows.filter(f=>{const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;if(seen.has(k))return false;seen.add(k);return true;});
 }
+function buildRawFlowMap(flows){
+  const m=new Map();
+  for(const f of flows){const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;m.set(k,(m.get(k)||0)+1);}
+  return m;
+}
 function activeFlows(){
   let fl=S.flows;
   if(S.nrMode==='tcp')fl=fl.filter(f=>nrCategory(f)!=='tcp');
@@ -2179,7 +2184,9 @@ function rnode(n,d,nrDsts,nrCats){
   const svcScore=svcPerm(n.svcs);
   const cidrScore=Math.min(100,Math.round(nodePerm(n.srcs,n.dsts,n.isV6,[])));
   const pp=`<span class="pp" style="background:${pcolor(n.perm)}18;color:${pcolor(n.perm)}" title="Perm ${n.perm}/100 = CIDR ${cidrScore}×70% + SVC ${svcScore}×30%">${n.perm}</span>`;
-  const nh=`<span class="nh">${n.hits.toLocaleString('fr-FR')} fl.</span>`;
+  const rawHits=n.flows.reduce((s,f)=>s+(S.rawFlowMap.get(`${f.srcip}|${f.dstip}|${f.svcKey}`)||1),0);
+  const nhTitle=rawHits!==n.hits?`${rawHits.toLocaleString('fr-FR')} entrées log · ${n.hits.toLocaleString('fr-FR')} uniq.`:`${rawHits.toLocaleString('fr-FR')} flows`;
+  const nh=`<span class="nh" title="${nhTitle}">${rawHits.toLocaleString('fr-FR')} fl.</span>`;
 
   // Sources — always shown as tag list with optional obj name annotation
   const srcHtml=`<span class="nb ns">SRC</span> <div class="dst-list" style="margin-top:2px">${n.srcs.map(s=>`<span class="dst-tag">${fmtCidr(s,n.isV6)}</span>`).join('')}</div>`;
@@ -3077,6 +3084,7 @@ function loadPolicy(pid){
   S.nrExcludedDsts=new Set(); // reset per-IP exclusions on new policy load
   setTimeout(()=>{
     S.flows=pol.flows;
+    S.rawFlowMap=buildRawFlowMap(pol.flows);
     document.getElementById('h-flows').textContent=S.flows.length;
     document.getElementById('h-nr').textContent=S.flows.filter(f=>f.noReturn).length;
     const all=dedup(S.flows);
@@ -3158,7 +3166,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Clear All button
   document.getElementById('btn-clear-all').addEventListener('click',()=>{
     // Reset full state
-    S.policies={};S.selPol=null;S.flows=[];S.tree=null;S.perm=80;
+    S.policies={};S.selPol=null;S.flows=[];S.rawFlowMap=new Map();S.tree=null;S.perm=80;
     S.curve={pts:[],nat:[]};S.optimalPerm=null;
     S.anchorMode='auto';S.fixSrc=false;S.fixDst=false;
     S.nrMode='none';S.nrExcludedDsts=new Set();
