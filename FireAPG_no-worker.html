@@ -543,7 +543,7 @@ input[type=range]::-webkit-slider-thumb{
     <div class="logo-ic">🔥</div>
     <div class="logo-text">
       <div class="logo-name">Fire<span>APG</span></div>
-      <div class="logo-ver">v13 · Zones · Free Navigation</div>
+      <div class="logo-ver">v0.13 · Zones · Free Navigation</div>
     </div>
   </div>
   <div class="hstat">
@@ -835,7 +835,7 @@ input[type=range]::-webkit-slider-thumb{
 
 <script>
 // ================================================================
-// FIREAPG v13
+// FIREAPG v0.13
 // Behavioral clustering · Service permissiveness · Existing rules
 // Overlap detection · Auto-optimize · Zones · Flow Lens free navigation
 // ================================================================
@@ -2849,7 +2849,7 @@ function openExplorer(){
 }
 
 const FL_DIM_LABELS={src:'Source',dst:'Destination',svc:'Service'};
-const FL_DIM_ICONS={src:'\U0001f5a5',dst:'\U0001f3af',svc:'\u2699'};
+const FL_DIM_ICONS={src:'🖥',dst:'🎯',svc:'⚙'};
 
 function renderExplorer(){
   const drill=S.expDrill;
@@ -2951,9 +2951,9 @@ function renderExplorer(){
   const canDrill=remaining.length>1;
   body.innerHTML=sorted.map(([k,cnt])=>{
     const c=nrCatMap[k];
-    const nrTag=c==='tcp'?`<span class="fl-nr" style="background:var(--rdl);color:var(--rd);border-color:var(--rd)">\U0001f534 NR-TCP</span>`:
-                c==='udp-sus'?`<span class="fl-nr" style="background:var(--nrl);color:var(--nr);border-color:var(--nr)">\U0001f7e0 NR-UDP?</span>`:
-                c==='udp-ok'?`<span class="fl-nr" style="background:var(--ywl);color:var(--yw);border-color:var(--yw)">\U0001f7e1 NR-UDP</span>`:'';
+    const nrTag=c==='tcp'?`<span class="fl-nr" style="background:var(--rdl);color:var(--rd);border-color:var(--rd)">🔴 NR-TCP</span>`:
+                c==='udp-sus'?`<span class="fl-nr" style="background:var(--nrl);color:var(--nr);border-color:var(--nr)">🟠 NR-UDP?</span>`:
+                c==='udp-ok'?`<span class="fl-nr" style="background:var(--ywl);color:var(--yw);border-color:var(--yw)">🟡 NR-UDP</span>`:'';
     const arrow=canDrill?'<span class="fl-arrow">\u203a</span>':'<span class="fl-arrow" style="cursor:default;opacity:.3">\u25ce</span>';
     const isIp=currentDim==='src'||currentDim==='dst';
     const objName=S.showObjNames?(isIp?(lookupObjName(k+'/32',false)||lookupObjName(k+'/128',true)):currentDim==='svc'?lookupSvcName(k):null):null;
@@ -3350,6 +3350,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('objdb-clear-btn').style.display='none';
     document.getElementById('obj-names-toggle').style.display='none';
     document.getElementById('obj-names-toggle').classList.remove('act');
+    document.getElementById('objdb-main-fi').value='';
     if(S.tree)renderTree();
     setStatus('Object database cleared',true);
   });
