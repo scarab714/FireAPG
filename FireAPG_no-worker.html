@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FireAPG v10 — Automatic Policy Generator</title>
+<title>FireAPG — Automatic Policy Generator</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -472,6 +472,16 @@ input[type=range]::-webkit-slider-thumb{
 .fl-entry:hover .fl-arrow{color:var(--ac)}
 .fl-svc-entry:hover .fl-arrow{color:var(--pu)}
 .fl-nr{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid;white-space:nowrap;flex-shrink:0}
+/* Dimension selector buttons */
+.fl-dim-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:var(--r6);border:1px solid var(--b1);
+  background:var(--s2);color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.fl-dim-btn:hover,.fl-dim-btn.active{
+  border-color:var(--ac);background:var(--acl);color:var(--ac);
+}
 /* Breadcrumb */
 .fl-crumb{
   font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;
@@ -482,6 +492,14 @@ input[type=range]::-webkit-slider-thumb{
 .fl-crumb-act{color:var(--tx);cursor:default;}
 .fl-crumb-act:hover{background:transparent;color:var(--tx)}
 .fl-crumb-sep{color:var(--t4);font-size:14px;}
+/* Clear All button */
+.btn-clear-all{
+  display:none;padding:4px 10px;border-radius:var(--r4);border:1px solid var(--rd);
+  background:transparent;color:var(--rd);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;margin-top:4px;
+}
+.btn-clear-all:hover{background:var(--rdl);}
+.btn-clear-all.visible{display:inline-flex;align-items:center;gap:4px;}
 
 /* LOADING OVERLAY */
 .lov{
@@ -525,7 +543,7 @@ input[type=range]::-webkit-slider-thumb{
     <div class="logo-ic">🔥</div>
     <div class="logo-text">
       <div class="logo-name">Fire<span>APG</span></div>
-      <div class="logo-ver">v10 · Behavioral · Auto-Optimize</div>
+      <div class="logo-ver">v13 · Zones · Free Navigation</div>
     </div>
   </div>
   <div class="hstat">
@@ -547,7 +565,10 @@ input[type=range]::-webkit-slider-thumb{
 
     <!-- LOG IMPORT -->
     <div class="lp-section">
-      <div class="sec-hdr">📂 Log File</div>
+      <div class="sec-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📂 Log File</span>
+        <button class="btn-clear-all" id="btn-clear-all" title="Reset everything">🗑 Clear all</button>
+      </div>
       <div class="dz" id="uz">
         <input type="file" id="fi" accept=".csv,.log,.txt">
         <div class="dz-icon">📄</div>
@@ -581,6 +602,11 @@ input[type=range]::-webkit-slider-thumb{
         </div>
         <div class="objdb-body" id="objdb-main-body">
           <div style="font-size:11px;color:var(--t3);margin-bottom:6px;line-height:1.5" id="objdb-hint">Load a log file first to detect the vendor format.</div>
+          <!-- CLI commands help -->
+          <div id="objdb-cmd-section" style="display:none;margin-bottom:8px">
+            <button class="btn sm" id="objdb-cmd-btn" style="font-size:10px;padding:3px 8px;background:transparent;border-color:var(--t4);color:var(--t3)" title="Show CLI commands to collect object data">📋 CLI commands</button>
+            <div id="objdb-cmd-panel" style="display:none;margin-top:6px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r6);padding:10px;font-size:11px"></div>
+          </div>
           <div class="dz" id="objdb-main-dz" style="padding:10px;display:none">
             <input type="file" id="objdb-main-fi" accept=".txt,.conf,.log">
             <div class="dz-text" id="objdb-dz-label"><strong>Drop</strong> or click — CLI config .txt</div>
@@ -790,12 +816,17 @@ input[type=range]::-webkit-slider-thumb{
   <div class="sp-hdr">
     <div>
       <div class="sp-title" style="color:var(--pu)">🔍 Flow Lens</div>
-      <div class="sp-sub" id="exp-sub">Select a source to drill down</div>
+      <div class="sp-sub" id="exp-sub">Choose a starting dimension</div>
     </div>
     <button class="btn sm" id="b-expclose">✕ Close</button>
   </div>
   <!-- Breadcrumb -->
-  <div id="fl-breadcrumb" style="padding:8px 16px;border-bottom:1px solid var(--b1);font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:38px;background:var(--s2)"></div>
+  <div id="fl-breadcrumb" style="padding:6px 12px;border-bottom:1px solid var(--b1);font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:36px;background:var(--s2)"></div>
+  <!-- Search bar -->
+  <div style="padding:6px 12px;border-bottom:1px solid var(--b1);background:var(--s2)">
+    <input type="text" id="fl-search" placeholder="🔍 Filter…" autocomplete="off"
+      style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--b1);border-radius:var(--r6);padding:5px 10px;font-size:12px;color:var(--t1);outline:none">
+  </div>
   <div class="sp-body" id="exp-body"></div>
 </div>
 
@@ -804,9 +835,9 @@ input[type=range]::-webkit-slider-thumb{
 
 <script>
 // ================================================================
-// FIREAPG v10
+// FIREAPG v13
 // Behavioral clustering · Service permissiveness · Existing rules
-// Overlap detection · Auto-optimize · Improved GUI · Auto dark/light
+// Overlap detection · Auto-optimize · Zones · Flow Lens free navigation
 // ================================================================
 
 const SVC_NAMES={
@@ -848,12 +879,14 @@ let S={
   nrExcludedDsts:new Set(),
   fileSource:'forti',
   expFilter:null,expFilterType:null,expTab:'src',
-  expDrillSrc:null,expDrillDst:null,
+  expDrill:[],          // stack: [{dim:'src'|'dst'|'svc', value:string}]
+  expDimOrder:['src','dst','svc'],  // user-chosen navigation order
+  expSearch:'',         // live search filter in flow lens
   hubTab:'forti',
   _highlightId:null,
   objDb:{
-    forti:{addr:{},addr6:{},svc:{}},
-    pa:{addr:{},svc:{}}
+    forti:{addr:{},addr6:{},svc:{},zone:{}},
+    pa:{addr:{},svc:{},zone:{}}
   },
   showObjNames:false,
 };
@@ -905,7 +938,7 @@ function fmtSvc(proto,port){
   if(proto===58)return port===0?'ICMPv6':`ICMPv6-type${port}`;
   if(proto===6)return `tcp-${port}`;
   if(proto===17)return `udp-${port}`;
-  return `proto${proto}-${port}`;
+  return `IP-${proto}`;
 }
 
 // ================================================================
@@ -2097,6 +2130,10 @@ function renderTree(){
   c.innerHTML=S.tree.map(n=>rnode(n,0,nrDsts,nrCats)).join('');
   c.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleNode(S.tree,b.dataset.t);renderTree();updateUI();}));
   c.querySelectorAll('[data-ck]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setSel(S.tree,b.dataset.ck,b.classList.contains('ck')?false:true);renderTree();updateUI();}));
+  c.querySelectorAll('[data-nr-udp-ok]').forEach(el=>{
+    el.addEventListener('mouseenter',ev=>{const svcs=el.dataset.nrUdpOk;showTip(ev,`<div style="font-weight:700;margin-bottom:4px">🟡 UDP one-way normal (kept)</div><div style="font-size:11px;color:var(--t2);line-height:1.7">${svcs||'—'}</div>`);});
+    el.addEventListener('mouseleave',hideTip);
+  });
   // × on NR dst tags → toggle exclude/reactivate (visual + export only, no tree rebuild)
   c.querySelectorAll('[data-excl-dst]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation();
@@ -2132,12 +2169,17 @@ function rnode(n,d,nrDsts,nrCats){
   let nrBadge='';
   if(nrCat==='tcp')nrBadge=`<span class="nb nnr-tcp" title="TCP no-return — connection refused or blocked">🔴 NR-TCP</span>`;
   else if(nrCat==='udp-sus')nrBadge=`<span class="nb nnr-udp-sus" title="UDP no-return — unexpected port">🟠 NR-UDP?</span>`;
-  else if(nrCat==='udp-ok')nrBadge=`<span class="nb nnr-udp-ok" title="UDP no-return — expected one-way (syslog/NTP/SNMP…)">🟡 NR-UDP</span>`;
+  else if(nrCat==='udp-ok'){
+    // Build tooltip listing the normal UDP services seen in this node
+    const udpOkFlows=n.flows.filter(f=>nrCategory(f)==='udp-ok');
+    const udpOkSvcs=[...new Set(udpOkFlows.map(f=>{const name=SVC_NAMES[`17:${f.port}`];return name?`${name} (udp-${f.port})`:`udp-${f.port}`;}))].join(', ');
+    nrBadge=`<span class="nb nnr-udp-ok" data-nr-udp-ok="${udpOkSvcs.replace(/"/g,'&quot;')}" title="">🟡 NR-UDP</span>`;
+  }
 
   const svcScore=svcPerm(n.svcs);
   const cidrScore=Math.min(100,Math.round(nodePerm(n.srcs,n.dsts,n.isV6,[])));
   const pp=`<span class="pp" style="background:${pcolor(n.perm)}18;color:${pcolor(n.perm)}" title="Perm ${n.perm}/100 = CIDR ${cidrScore}×70% + SVC ${svcScore}×30%">${n.perm}</span>`;
-  const nh=`<span class="nh">${n.hits}f</span>`;
+  const nh=`<span class="nh">${n.hits.toLocaleString('fr-FR')} fl.</span>`;
 
   // Sources — always shown as tag list with optional obj name annotation
   const srcHtml=`<span class="nb ns">SRC</span> <div class="dst-list" style="margin-top:2px">${n.srcs.map(s=>`<span class="dst-tag">${fmtCidr(s,n.isV6)}</span>`).join('')}</div>`;
@@ -2266,13 +2308,21 @@ function updateUI(){
 // OBJECT DATABASE — PARSE & RESOLVE
 // ================================================================
 function parseFortiObjDB(text){
-  const db={addr:{},addr6:{},svc:{}};
+  const db={addr:{},addr6:{},svc:{},zone:{}};
   let section=null,curName=null,curObj={};
   const commit=()=>{
     if(!curName)return;
     if(section==='addr')db.addr[curName]={...curObj};
     else if(section==='addr6')db.addr6[curName]={...curObj};
     else if(section==='svc')db.svc[curName]={...curObj};
+    else if(section==='zone'){
+      // zone: interface list → build intf→zoneName map
+      if(curObj.interface){
+        curObj.interface.split(/\s+/).forEach(iface=>{
+          if(iface)db.zone[iface]=curName;
+        });
+      }
+    }
     curName=null;curObj={};
   };
   for(const raw of text.split('\n')){
@@ -2280,6 +2330,7 @@ function parseFortiObjDB(text){
     if(line==='config firewall address'){section='addr';continue;}
     if(line==='config firewall address6'){section='addr6';continue;}
     if(line==='config firewall service custom'){section='svc';continue;}
+    if(line==='config system zone'){section='zone';continue;}
     if(line==='end'&&section){commit();section=null;continue;}
     if(!section)continue;
     const em=line.match(/^edit\s+"?([^"]+)"?$/);
@@ -2322,11 +2373,33 @@ function parseFortiObjDB(text){
       if(protoNum)svcIndex[`${protoNum}:${port}`]=name;
     }
   }
-  return{addrIndex,addr6Index,svcIndex};
+  return{addrIndex,addr6Index,svcIndex,zone:db.zone||{}};
 }
 
 function parsePAObjDB(text){
-  const addrIndex={},addr6Index={},svcIndex={};
+  const addrIndex={},addr6Index={},svcIndex={},zone={};
+  // Parse zone block: zone { ZoneName { network { layer3 [ intf1 intf2 ]; } } }
+  // Simple line-by-line state machine
+  let curZone=null;
+  const zoneLines=text.split('\n');
+  for(let i=0;i<zoneLines.length;i++){
+    const l=zoneLines[i].trim();
+    // Zone name detection: "ZoneName {" at depth 1
+    const zm=l.match(/^(\S+)\s*\{/);
+    if(zm&&!curZone&&!['zone','network','tap','layer3','layer2','virtual-wire','tunnel','loopback','vlan'].includes(zm[1].toLowerCase())){
+      // Could be a zone name
+      const prev=zoneLines[i-1]?.trim();
+      if(prev==='zone {' || (i>0 && zoneLines[i-2]?.trim()==='zone {')){curZone=zm[1];continue;}
+    }
+    if(curZone){
+      // Look for interface assignments: layer3 [ intf1 intf2 ]; or tap [ intf1 ]; 
+      const im=l.match(/(?:layer[23]|tap|virtual-wire|tunnel|loopback|vlan)\s+\[([^\]]+)\]/);
+      if(im){
+        im[1].split(/\s+/).forEach(iface=>{if(iface.trim())zone[iface.trim()]=curZone;});
+      }
+      if(l==='}')curZone=null;
+    }
+  }
   for(const line of text.split('\n')){
     const l=line.trim();
     // set address <name> ip-netmask <ip/prefix>
@@ -2345,7 +2418,7 @@ function parsePAObjDB(text){
       svcIndex[`${proto}:${port}`]=m[1];
     }
   }
-  return{addrIndex,addr6Index,svcIndex};
+  return{addrIndex,addr6Index,svcIndex,zone};
 }
 
 function resolveAddrFG(cidr,isV6){
@@ -2406,6 +2479,23 @@ function resolveSvcPA(svcName){
 }
 
 // Lookup existing object name for a CIDR — checks both FG and PA dbs (whichever has it)
+function lookupZone(intf){
+  // Look up zone name for an interface in FG or PA zone db
+  for(const db of[S.objDb.forti,S.objDb.pa]){
+    if(db.zone&&db.zone[intf])return db.zone[intf];
+  }
+  return null;
+}
+function intfOrZone(intf){
+  const z=lookupZone(intf);
+  return z?`${z} (${intf})`:intf;
+}
+function zoneForIntf(intf){
+  for(const db of[S.objDb.forti,S.objDb.pa]){
+    if(db.zone&&db.zone[intf])return db.zone[intf];
+  }
+  return '';
+}
 function lookupObjName(cidr,isV6){
   if(!S.showObjNames)return null;
   // Check FG db first, then PA db
@@ -2528,12 +2618,14 @@ function genFortinet(nodes,polName){
   if(newAddrs.length||newAddrs6.length||newSvcs.length)lines.push(`! === FIREWALL POLICIES ===`);
   lines.push(`config firewall policy`);
   nodes.forEach((n,i)=>{
-    const si=n.srcintf||'LAN',di=n.dstintf||'WAN';
+    const si=zoneForIntf(n.srcintf)||n.srcintf||'LAN';
+    const di=zoneForIntf(n.dstintf)||n.dstintf||'WAN';
     const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
     const srcNames=n.srcs.map(c=>resolveAddrFG(c,n.isV6).name);
     const dstNames=effDsts.map(c=>resolveAddrFG(c,n.isV6).name);
     const svcNames=n.svcs.map(s=>resolveSvcFG(s).name);
-    const ruleName=`FireAPG-Rule-${String(i+1).padStart(2,'0')}`;
+    const polId=S.selPol||'0';
+    const ruleName=`OPT-ID${polId}-${String(i+1).padStart(3,'0')}`;
     lines.push(`    edit 0`);
     lines.push(`        ! Rule ${i+1} — ${n.isV6?'IPv6':'IPv4'} — perm:${n.perm}/100 — ${n.hits} flows${n.noReturn?' ! ⚠ No-return':''}`);
     lines.push(`        set name "${ruleName}"`);
@@ -2600,7 +2692,8 @@ function genPaloAlto(nodes,polName,prefix){
   // Policies
   if(newAddrs.length||newSvcs.length)lines.push(`# === SECURITY RULES ===`);
   nodes.forEach((n,i)=>{
-    const rname=`${prefix}-${String(i+1).padStart(2,'0')}`;
+    const polId=S.selPol||'0';
+    const rname=`OPT-ID${polId}-${String(i+1).padStart(3,'0')}`;
     const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
     const srcNames=n.srcs.map(c=>resolveAddrPA(c,n.isV6).name);
     const dstNames=effDsts.map(c=>resolveAddrPA(c,n.isV6).name);
@@ -2617,7 +2710,11 @@ function genPaloAlto(nodes,polName,prefix){
 }
 function genCSV(nodes){
   const hasObj=S.showObjNames;
-  const hdr=['Rule#','Type','No-Return','SRC Interface','DST Interface'];
+  const hasZone=Object.keys(S.objDb.forti.zone||{}).length>0||Object.keys(S.objDb.pa.zone||{}).length>0;
+  const hdr=['Rule#','Type','No-Return','SRC Interface'];
+  if(hasZone)hdr.push('SRC Zone');
+  hdr.push('DST Interface');
+  if(hasZone)hdr.push('DST Zone');
   if(hasObj)hdr.push('Source CIDR(s)','Source Name(s)','Destination CIDR(s)','Destination Name(s)','Services','Service Name(s)');
   else hdr.push('Source CIDR(s)','Destination CIDR(s)','Services');
   hdr.push('Flows','Perm.','Level');
@@ -2625,7 +2722,10 @@ function genCSV(nodes){
   nodes.forEach((n,i)=>{
     const lv=n.perm<=10?'Surgical':n.perm<=35?'Precise':n.perm<=65?'Balanced':n.perm<=80?'Broad':'Very Broad';
     const dsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
-    const row=[i+1,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',n.srcintf,n.dstintf];
+    const row=[i+1,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',n.srcintf];
+    if(hasZone)row.push(zoneForIntf(n.srcintf));
+    row.push(n.dstintf);
+    if(hasZone)row.push(zoneForIntf(n.dstintf));
     if(hasObj){
       row.push(n.srcs.join(' | '));
       row.push(n.srcs.map(c=>lookupObjName(c,n.isV6)||'').join(' | '));
@@ -2645,7 +2745,11 @@ function genCSV(nodes){
 }
 function doExcel(nodes,pol){
   const hasObj=S.showObjNames;
-  const hdr=['Rule#','Type','No-Return','SRC Interface','DST Interface'];
+  const hasZone=Object.keys(S.objDb.forti.zone||{}).length>0||Object.keys(S.objDb.pa.zone||{}).length>0;
+  const hdr=['Rule#','Type','No-Return','SRC Interface'];
+  if(hasZone)hdr.push('SRC Zone');
+  hdr.push('DST Interface');
+  if(hasZone)hdr.push('DST Zone');
   if(hasObj)hdr.push('Source CIDR(s)','Source Name(s)','Destination CIDR(s)','Destination Name(s)');
   else hdr.push('Source CIDR(s)','Destination CIDR(s)');
   if(hasObj)hdr.push('Services','Service Name(s)');
@@ -2655,7 +2759,10 @@ function doExcel(nodes,pol){
   nodes.forEach((n,i)=>{
     const lv=n.perm<=10?'Surgical':n.perm<=35?'Precise':n.perm<=65?'Balanced':n.perm<=80?'Broad':'Very Broad';
     const dsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
-    const row=[i+1,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',n.srcintf,n.dstintf];
+    const row=[i+1,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',n.srcintf];
+    if(hasZone)row.push(zoneForIntf(n.srcintf));
+    row.push(n.dstintf);
+    if(hasZone)row.push(zoneForIntf(n.dstintf));
     if(hasObj){
       row.push(n.srcs.join(', '));
       row.push(n.srcs.map(c=>lookupObjName(c,n.isV6)||'').join(', '));
@@ -2673,9 +2780,17 @@ function doExcel(nodes,pol){
   });
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  // Dynamic column widths: with obj names adds src-name, dst-name, svc-name cols
-  if(hasObj)ws['!cols']=[{wch:5},{wch:5},{wch:9},{wch:14},{wch:14},{wch:24},{wch:20},{wch:24},{wch:20},{wch:20},{wch:20},{wch:6},{wch:5},{wch:10},{wch:8}];
-  else ws['!cols']=[{wch:5},{wch:5},{wch:9},{wch:16},{wch:16},{wch:28},{wch:36},{wch:28},{wch:6},{wch:5},{wch:10},{wch:8}];
+  // Dynamic column widths
+  const zCols=hasZone?2:0;
+  const oCols=hasObj?6:3;
+  const baseCols=[{wch:5},{wch:5},{wch:9},{wch:14}];
+  if(hasZone)baseCols.push({wch:14});
+  baseCols.push({wch:14});
+  if(hasZone)baseCols.push({wch:14});
+  if(hasObj)baseCols.push({wch:24},{wch:20},{wch:24},{wch:20},{wch:20},{wch:20});
+  else baseCols.push({wch:28},{wch:36},{wch:28});
+  baseCols.push({wch:6},{wch:5},{wch:10},{wch:8});
+  ws['!cols']=baseCols;
   XLSX.utils.book_append_sheet(wb,ws,'FireAPG Rules');
   if(S.flows.length){
     const frows=[['SRC IP','DST IP','Proto','Port','Service','SRC Intf','DST Intf','Country','Sent (B)','Rcvd (B)','No-Return']];
@@ -2726,92 +2841,145 @@ function switchHubTab(ht){
 function openExplorer(){
   document.getElementById('hubp').classList.remove('open');
   document.getElementById('expp').classList.add('open');
+  S.expDrill=[];
+  S.expSearch='';
+  const srch=document.getElementById('fl-search');
+  if(srch)srch.value='';
   renderExplorer();
 }
 
-function renderExplorer(){
-  const src=S.expDrillSrc,dst=S.expDrillDst;
-  // Filter flows for current drill level
-  let flows=S.flows;
-  if(src)flows=flows.filter(f=>f.srcip===src);
-  if(dst)flows=flows.filter(f=>f.dstip===dst);
+const FL_DIM_LABELS={src:'Source',dst:'Destination',svc:'Service'};
+const FL_DIM_ICONS={src:'\U0001f5a5',dst:'\U0001f3af',svc:'\u2699'};
 
-  // Determine what to show
-  let level,items,keyFn,countFn;
-  if(!src){
-    level='src';
-    keyFn=f=>f.srcip;
-  } else if(!dst){
-    level='dst';
-    keyFn=f=>f.dstip;
-  } else {
-    level='svc';
-    keyFn=f=>f.svc;
+function renderExplorer(){
+  const drill=S.expDrill;
+  const order=S.expDimOrder;
+  const search=(S.expSearch||'').toLowerCase();
+
+  // Build flows from active tree nodes
+  const seenF=new Set();
+  let flows=getAllActive(S.tree).flatMap(n=>n.flows).filter(f=>{
+    const k=f.srcip+'|'+f.dstip+'|'+f.svcKey;
+    if(seenF.has(k))return false;seenF.add(k);return true;
+  });
+
+  // Apply drill selections
+  for(const step of drill){
+    if(step.dim==='src')flows=flows.filter(f=>f.srcip===step.value);
+    else if(step.dim==='dst')flows=flows.filter(f=>f.dstip===step.value);
+    else if(step.dim==='svc')flows=flows.filter(f=>f.svc===step.value);
   }
 
-  // Build counts and NR info
+  const drilled=new Set(drill.map(d=>d.dim));
+  const remaining=order.filter(d=>!drilled.has(d));
+  const currentDim=remaining[0]||null;
+
+  // Breadcrumb
+  const crumbEl=document.getElementById('fl-breadcrumb');
+  if(drill.length===0){
+    crumbEl.innerHTML=order.map(dim=>
+      `<button class="fl-dim-btn" data-dim="${dim}">${FL_DIM_ICONS[dim]} ${FL_DIM_LABELS[dim]}</button>`
+    ).join('');
+    crumbEl.querySelectorAll('.fl-dim-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const d=btn.dataset.dim;
+        S.expDimOrder=[d,...['src','dst','svc'].filter(x=>x!==d)];
+        S.expDrill=[];
+        renderExplorer();
+      });
+    });
+    document.getElementById('exp-sub').textContent='Choose a starting dimension';
+  } else {
+    let crumb=`<span class="fl-crumb" data-di="-1">All</span>`;
+    drill.forEach((step,i)=>{
+      const isLast=i===drill.length-1;
+      crumb+=` <span class="fl-crumb-sep">\u203a</span> <span class="fl-crumb${isLast?' fl-crumb-act':''}" data-di="${i}">${FL_DIM_ICONS[step.dim]} ${step.value}</span>`;
+    });
+    crumbEl.innerHTML=crumb;
+    // Add dim switch tabs when >1 remaining
+    if(remaining.length>1){
+      const tabs=document.createElement('div');
+      tabs.style.cssText='display:flex;gap:4px;margin-left:auto;flex-shrink:0';
+      remaining.forEach(dim=>{
+        const btn=document.createElement('button');
+        btn.className='fl-dim-btn'+(dim===currentDim?' active':'');
+        btn.textContent=FL_DIM_ICONS[dim]+' '+FL_DIM_LABELS[dim];
+        btn.addEventListener('click',()=>{
+          const newOrder=[...order];
+          const rem=newOrder.filter(d=>!drilled.has(d));
+          const firstRemIdx=newOrder.indexOf(rem[0]);
+          const thisIdx=newOrder.indexOf(dim);
+          [newOrder[firstRemIdx],newOrder[thisIdx]]=[newOrder[thisIdx],newOrder[firstRemIdx]];
+          S.expDimOrder=newOrder;
+          renderExplorer();
+        });
+        tabs.appendChild(btn);
+      });
+      crumbEl.appendChild(tabs);
+    }
+    crumbEl.querySelectorAll('[data-di]').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const di=parseInt(el.dataset.di);
+        S.expDrill=di===-1?[]:drill.slice(0,di+1);
+        S.expSearch='';const srch=document.getElementById('fl-search');if(srch)srch.value='';
+        renderExplorer();
+      });
+    });
+    document.getElementById('exp-sub').textContent=drill.map(s=>FL_DIM_LABELS[s.dim]+': '+s.value).join(' \u00b7 ');
+  }
+
+  const body=document.getElementById('exp-body');
+
+  if(!currentDim){
+    body.innerHTML=`<div style="padding:16px;font-size:12px;color:var(--t2);text-align:center"><div style="font-size:20px;margin-bottom:8px">\u2705</div><div>${flows.length} flow(s) match this combination</div></div>`;
+    return;
+  }
+
+  const keyFn=currentDim==='src'?f=>f.srcip:currentDim==='dst'?f=>f.dstip:f=>f.svc;
   const counts={},nrCatMap={};
   for(const f of flows){
     const k=keyFn(f);
     counts[k]=(counts[k]||0)+1;
     const c=nrCategory(f);
-    if(c){
-      const prev=nrCatMap[k];
-      if(!prev||c==='tcp'||(c==='udp-sus'&&prev==='udp-ok'))nrCatMap[k]=c;
-    }
+    if(c){const prev=nrCatMap[k];if(!prev||c==='tcp'||(c==='udp-sus'&&prev==='udp-ok'))nrCatMap[k]=c;}
   }
-  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  let sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(search)sorted=sorted.filter(([k])=>k.toLowerCase().includes(search));
 
-  // Breadcrumb
-  const crumbEl=document.getElementById('fl-breadcrumb');
-  let crumb=`<span class="fl-crumb ${!src?'fl-crumb-act':''}" data-level="root">All sources</span>`;
-  if(src)crumb+=` <span class="fl-crumb-sep">›</span> <span class="fl-crumb ${!dst?'fl-crumb-act':''}" data-level="src">${src}</span>`;
-  if(dst)crumb+=` <span class="fl-crumb-sep">›</span> <span class="fl-crumb fl-crumb-act" data-level="dst">${dst}</span>`;
-  crumbEl.innerHTML=crumb;
-  crumbEl.querySelectorAll('[data-level]').forEach(el=>el.addEventListener('click',()=>{
-    if(el.dataset.level==='root'){S.expDrillSrc=null;S.expDrillDst=null;}
-    else if(el.dataset.level==='src'){S.expDrillDst=null;}
-    renderExplorer();
-  }));
+  if(!sorted.length){body.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:24px">No results</div>';return;}
 
-  // Level label
-  const levelLabels={src:'Sources',dst:`Destinations from ${src}`,svc:`Services · ${src} → ${dst}`};
-  document.getElementById('exp-sub').textContent=levelLabels[level]||'';
-
-  const body=document.getElementById('exp-body');
-  if(!sorted.length){body.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:24px">No data</div>';return;}
-
+  const canDrill=remaining.length>1;
   body.innerHTML=sorted.map(([k,cnt])=>{
     const c=nrCatMap[k];
-    const nrTag=c==='tcp'?`<span class="fl-nr" style="background:var(--rdl);color:var(--rd);border-color:var(--rd)">🔴 NR-TCP</span>`:
-                c==='udp-sus'?`<span class="fl-nr" style="background:var(--nrl);color:var(--nr);border-color:var(--nr)">🟠 NR-UDP?</span>`:
-                c==='udp-ok'?`<span class="fl-nr" style="background:var(--ywl);color:var(--yw);border-color:var(--yw)">🟡 NR-UDP</span>`:'';
-    const canDrill=level!=='svc';
-    const arrow=canDrill?`<span class="fl-arrow">›</span>`:'<span class="fl-arrow" style="cursor:default;opacity:.3">◎</span>';
-    // Object name annotation for src/dst IPs and services
-    const isIp=level==='src'||level==='dst';
-    const isSvc=level==='svc';
-    const objName=isIp?(lookupObjName(`${k}/32`,false)||lookupObjName(`${k}/128`,true)):
-                  isSvc?lookupSvcName(k):null;
+    const nrTag=c==='tcp'?`<span class="fl-nr" style="background:var(--rdl);color:var(--rd);border-color:var(--rd)">\U0001f534 NR-TCP</span>`:
+                c==='udp-sus'?`<span class="fl-nr" style="background:var(--nrl);color:var(--nr);border-color:var(--nr)">\U0001f7e0 NR-UDP?</span>`:
+                c==='udp-ok'?`<span class="fl-nr" style="background:var(--ywl);color:var(--yw);border-color:var(--yw)">\U0001f7e1 NR-UDP</span>`:'';
+    const arrow=canDrill?'<span class="fl-arrow">\u203a</span>':'<span class="fl-arrow" style="cursor:default;opacity:.3">\u25ce</span>';
+    const isIp=currentDim==='src'||currentDim==='dst';
+    const objName=S.showObjNames?(isIp?(lookupObjName(k+'/32',false)||lookupObjName(k+'/128',true)):currentDim==='svc'?lookupSvcName(k):null):null;
     const labelHtml=objName?`${k}<span class="obj-name-lbl">(${objName})</span>`:k;
-    return`<div class="fl-entry${level==='svc'?' fl-svc-entry':''}" data-k="${k}" data-level="${level}">${nrTag}<span class="fl-label">${labelHtml}</span><span class="fl-count">${cnt}f</span>${arrow}</div>`;
+    const kEsc=k.replace(/"/g,'&quot;');
+    return`<div class="fl-entry${currentDim==='svc'?' fl-svc-entry':''}" data-k="${kEsc}" data-dim="${currentDim}">${nrTag}<span class="fl-label">${labelHtml}</span><span class="fl-count">${cnt.toLocaleString('fr-FR')} fl.</span>${arrow}</div>`;
   }).join('');
 
   body.querySelectorAll('.fl-entry').forEach(el=>el.addEventListener('click',()=>{
-    const k=el.dataset.k;
-    const lv=el.dataset.level;
-    if(lv==='src'){S.expDrillSrc=k;renderExplorer();}
-    else if(lv==='dst'){S.expDrillDst=k;renderExplorer();}
-    else if(lv==='svc'){
-      // Find and highlight node in tree
-      highlightTreeNode(src,k);
+    const k=el.dataset.k,dim=el.dataset.dim;
+    if(canDrill){
+      S.expDrill=[...drill,{dim,value:k}];
+      S.expSearch='';const srch=document.getElementById('fl-search');if(srch)srch.value='';
+      renderExplorer();
+    } else if(dim==='svc'){
+      const srcStep=drill.find(d=>d.dim==='src');
+      const dstStep=drill.find(d=>d.dim==='dst');
+      if(srcStep&&dstStep)highlightTreeNode(srcStep.value,k);
     }
   }));
 }
 
 function highlightTreeNode(srcip,svcName){
   // Find the node in the tree that covers this src+dst+svc combination
-  const dst=S.expDrillDst;
+  const dstStep=S.expDrill.find(d=>d.dim==='dst');
+  const dst=dstStep?.value||null;
   if(!S.tree||!srcip||!dst||!svcName)return;
 
   // Find all active nodes covering this flow
@@ -2865,7 +3033,7 @@ function renderPolList(query=''){
   const q=query.toLowerCase().trim();
   const filtered=q?pols.filter(([id,p])=>p.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)):pols;
   if(!filtered.length){list.innerHTML='<div class="pol-none">No match</div>';list.style.display='block';return;}
-  list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}">${p.name}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length}f</span></div>`).join('');
+  list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}">${p.name}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length.toLocaleString('fr-FR')} fl.</span></div>`).join('');
   list.querySelectorAll('.pol-item').forEach(el=>el.addEventListener('click',()=>{
     const pid=el.dataset.pid;
     input.value=S.policies[pid]?.name||pid;
@@ -2942,6 +3110,9 @@ function loadFile(file){
         badge.textContent=fmt==='pa'?'PA':'Forti';
         badge.className=`src-badge ${fmt==='pa'?'src-pa':'src-forti'}`;
         badge.style.display='inline';
+        // Show clear all + CLI commands
+        document.getElementById('btn-clear-all').classList.add('visible');
+        document.getElementById('objdb-cmd-section').style.display='block';
         // Show obj-db dropzone now that we know the vendor
         const isPA=fmt==='pa';
         const hint=document.getElementById('objdb-hint');
@@ -2963,6 +3134,61 @@ function loadFile(file){
 // INIT
 // ================================================================
 document.addEventListener('DOMContentLoaded',()=>{
+  // Clear All button
+  document.getElementById('btn-clear-all').addEventListener('click',()=>{
+    // Reset full state
+    S.policies={};S.selPol=null;S.flows=[];S.tree=null;S.perm=80;
+    S.curve={pts:[],nat:[]};S.optimalPerm=null;
+    S.anchorMode='auto';S.fixSrc=false;S.fixDst=false;
+    S.nrMode='none';S.nrExcludedDsts=new Set();
+    S.fileSource='forti';S.expDrill=[];S.expSearch='';
+    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{}},pa:{addr:{},svc:{},zone:{}}};
+    S.showObjNames=false;S._highlightId=null;
+    // Reset UI elements
+    document.getElementById('finfo').style.display='none';
+    document.getElementById('finfo').textContent='';
+    document.getElementById('pa-multi-dev').style.display='none';
+    document.getElementById('uz').style.borderColor='';
+    document.getElementById('fi').value='';
+    document.getElementById('pol-search').value='';
+    document.getElementById('pol-search').disabled=true;
+    document.getElementById('pol-search').placeholder='— Import a log file first —';
+    document.getElementById('pol-list').innerHTML='<div class="pol-none">No policies loaded</div>';
+    document.getElementById('pol-list').style.display='none';
+    document.getElementById('src-badge-hdr').style.display='none';
+    document.getElementById('b-exp-open').disabled=true;
+    document.getElementById('b-optimize').disabled=true;
+    document.getElementById('b-hub-trigger').disabled=true;
+    document.getElementById('objdb-main-badge').textContent='Not loaded';
+    document.getElementById('objdb-main-badge').classList.add('empty');
+    document.getElementById('objdb-clear-btn').style.display='none';
+    document.getElementById('obj-names-toggle').style.display='none';
+    document.getElementById('obj-names-toggle').classList.remove('act');
+    document.getElementById('objdb-main-dz').style.display='none';
+    document.getElementById('objdb-cmd-section').style.display='none';
+    document.getElementById('objdb-hint').textContent='Load a log file first to detect the vendor format.';
+    // Reset header stats
+    ['h-flows','h-rules','h-perm','h-nr'].forEach(id=>document.getElementById(id).textContent='—');
+    ['t-src','t-dst','t-svc','t-tot'].forEach(id=>document.getElementById(id).textContent='—');
+    // Reset tree, graph, insights
+    document.getElementById('tree-c').innerHTML='<div class="es"><div class="es-icon">🌲</div><div class="es-title">No data</div><div class="es-sub">Select a policy to analyze.</div></div>';
+    document.getElementById('il').innerHTML='';
+    document.getElementById('agg-info').style.display='none';
+    // Reset anchor mode UI
+    document.getElementById('anc-fix-src').checked=false;
+    document.getElementById('anc-fix-dst').checked=false;
+    document.getElementById('anc-auto-lbl').style.display='inline';
+    document.getElementById('anc-row-src').classList.remove('active');
+    document.getElementById('anc-row-dst').classList.remove('active');
+    // Reset NR mode
+    S.nrMode='none';
+    document.querySelectorAll('.nr-mode-btn').forEach(b=>b.classList.toggle('act',b.dataset.nrm==='none'));
+    document.getElementById('btn-clear-all').classList.remove('visible');
+    renderGraph({pts:[],nat:[]},80);
+    setPerm(80);
+    setStatus('Idle — Import a log file');
+  });
+
   // Log file upload
   const fi=document.getElementById('fi'),uz=document.getElementById('uz');
   fi.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
@@ -2997,14 +3223,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Flow Lens
   document.getElementById('b-exp-open').addEventListener('click',()=>{
-    S.expDrillSrc=null;S.expDrillDst=null;
+    S.expDrill=[];S.expSearch='';
     document.getElementById('hubp').classList.remove('open');
     document.getElementById('expp').classList.add('open');
+    const srch=document.getElementById('fl-search');if(srch)srch.value='';
     renderExplorer();
   });
   document.getElementById('b-expclose').addEventListener('click',()=>{
     document.getElementById('expp').classList.remove('open');
-    S.expDrillSrc=null;S.expDrillDst=null;
+    S.expDrill=[];S.expSearch='';
+  });
+
+  // Flow Lens search
+  document.addEventListener('input',e=>{
+    if(e.target.id==='fl-search'){S.expSearch=e.target.value;renderExplorer();}
   });
 
   // Tree actions
@@ -3036,6 +3268,35 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('b-csv-dl').addEventListener('click',()=>{const pol=S.policies[S.selPol];downloadCSV(document.getElementById('csv-prev').textContent,`FireAPG_${(pol?.name||'policy').replace(/\s+/g,'_')}.csv`);});
   document.getElementById('b-xlsx-dl').addEventListener('click',()=>{const sel=getSelected(S.tree)||[];const nodes=sel.length>0?sel:getAllActive(S.tree);const pol=S.policies[S.selPol];doExcel(nodes,pol);});
 
+  // Object DB CLI commands button
+  document.getElementById('objdb-cmd-btn').addEventListener('click',()=>{
+    const panel=document.getElementById('objdb-cmd-panel');
+    const isPA=S.fileSource==='pa';
+    panel.style.display=panel.style.display==='none'?'block':'none';
+    if(panel.style.display==='none')return;
+    const cmds=isPA?[
+      {label:'Enter configure mode first',cmd:'configure',note:''},
+      {label:'Address objects',cmd:'show address',note:''},
+      {label:'Service objects',cmd:'show service',note:''},
+      {label:'Zone definitions',cmd:'show zone',note:''},
+    ]:[
+      {label:'IPv4 address objects',cmd:'show firewall address',note:''},
+      {label:'IPv6 address objects',cmd:'show firewall address6',note:''},
+      {label:'Service objects',cmd:'show firewall service custom',note:''},
+      {label:'Zone definitions',cmd:'show system zone',note:''},
+    ];
+    const noteHtml=isPA?'<div style="color:var(--t3);font-style:italic;margin-bottom:8px">⚠ Must be in configure context</div>':'';
+    panel.innerHTML=noteHtml+cmds.map(c=>`
+      <div style="margin-bottom:7px">
+        <div style="color:var(--t3);font-size:10px;margin-bottom:2px">${c.label}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <code style="flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx)">${c.cmd}</code>
+          <button class="btn sm" style="flex-shrink:0;padding:3px 8px;font-size:10px" onclick="navigator.clipboard.writeText('${c.cmd}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>
+        </div>
+      </div>
+    `).join('');
+  });
+
   // Obj-DB main section — collapsible toggle
   document.getElementById('objdb-main-toggle').addEventListener('click',e=>{
     if(e.target.closest('#objdb-clear-btn'))return; // don't collapse on clear click
@@ -3055,10 +3316,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       S.objDb[vendor].addrIndex=db.addrIndex;
       S.objDb[vendor].addr6Index=db.addr6Index;
       S.objDb[vendor].svcIndex=db.svcIndex;
+      S.objDb[vendor].zone=db.zone||{};
       const aCount=Object.keys(db.addrIndex||{}).length+Object.keys(db.addr6Index||{}).length;
       const sCount=Object.keys(db.svcIndex||{}).length;
+      const zCount=Object.keys(db.zone||{}).length;
       const badge=document.getElementById('objdb-main-badge');
-      badge.textContent=`✓ ${aCount} addr · ${sCount} svc`;
+      badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zCount} zones`:''}`;
       badge.classList.remove('empty');
       document.getElementById('objdb-clear-btn').style.display='inline';
       document.getElementById('obj-names-toggle').style.display='flex';
@@ -3080,7 +3343,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Clear obj-db
   document.getElementById('objdb-clear-btn').addEventListener('click',e=>{
     e.stopPropagation();
-    S.objDb={forti:{addr:{},addr6:{},svc:{}},pa:{addr:{},svc:{}}};
+    S.objDb={forti:{addr:{},addr6:{},svc:{},zone:{}},pa:{addr:{},svc:{},zone:{}}};
     S.showObjNames=false;
     const badge=document.getElementById('objdb-main-badge');
     badge.textContent='Not loaded';badge.classList.add('empty');
