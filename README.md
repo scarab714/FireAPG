@@ -1,159 +1,264 @@
-# FireAPG v0.16 — Automatic Policy Generator
+# FireAPG v0.17 — Firewall Automatic Policy Generator
 
-FireAPG est un outil **100% client-side** (HTML/JS, aucun serveur) qui analyse des logs de trafic réseau FortiGate ou Palo Alto et génère automatiquement des règles de firewall optimisées, prêtes à exporter en CLI.
-
----
-
-## Fonctionnement général
-
-1. **Importer un fichier de logs** (FortiGate syslog ou Palo Alto CSV)
-2. **Sélectionner une policy** (règle source) dans le sélecteur à gauche
-3. **Régler le seuil de permissivité** (slider) — plus il est haut, moins de règles générées mais plus larges
-4. **Consulter l'arbre de règles** (Rule Expansion Interface) — visualiser, ajuster, merger
-5. **Exporter en CLI** — FortiGate ou Palo Alto, copier-coller directement dans le firewall
+Outil **100 % client-side** (fichier HTML autonome, aucun serveur, aucune dépendance externe) pour analyser des logs de trafic réseau et générer automatiquement des règles de firewall optimisées, prêtes à exporter en CLI ou en tableur.
 
 ---
 
-## Sources de logs supportées
+## Workflow
+
+```
+Import logs  →  (charger ObjDB)  →  Sélectionner policy  →  Ajuster seuil  →  Exporter
+```
+
+1. **Importer** un fichier de logs (FortiGate syslog ou Palo Alto CSV)
+2. **Charger l'Object Database** (optionnel mais recommandé) — sortie CLI du firewall source
+3. **Sélectionner une policy** dans le sélecteur gauche
+4. **Ajuster le seuil de permissivité** et le mode d'ancrage
+5. **Consulter les insights**, affiner dans l'arbre ou le Flow Lens
+6. **Exporter** en CLI FortiGate, CLI Palo Alto, CSV ou Excel
+
+---
+
+## Formats de logs supportés
 
 | Format | Détection | Champs requis |
 |--------|-----------|---------------|
-| FortiGate syslog | Automatique (champ `type=traffic`) | `srcip`, `dstip`, `proto`, `dstport`, `action`, `policyid`, `sentbyte`, `rcvdbyte` |
-| Palo Alto CSV | Automatique (en-têtes CSV) | `Source address`, `Destination address`, `IP Protocol`, `Destination Port`, `Action`, `Rule`, `Bytes Sent`, `Bytes Received` |
+| **FortiGate syslog** | Automatique (`type=traffic`) | `srcip` `dstip` `proto` `dstport` `action` `policyid` `sentbyte` `rcvdbyte` |
+| **Palo Alto CSV** | Automatique (en-têtes CSV) | `Source address` `Destination address` `IP Protocol` `Destination Port` `Action` `Rule` `Bytes Sent` `Bytes Received` |
 
-### NAT (FortiGate)
-Les champs `trandisp`, `transip`, `transport`, `tranip`, `tranport` sont parsés automatiquement. Les flux NAT reçoivent un badge `🔵 SNAT`, `🔵 DNAT` ou `🔵 SNAT+DNAT` dans l'arbre.
-
-### NAT (Palo Alto)
-Colonnes `NAT Type`, `NAT Source IP`, `NAT Source Port`, `NAT Destination IP`, `NAT Destination Port` si présentes dans l'export CSV.
+Le champ `action` doit être `accept` ou `allow`. Les logs `deny` sont ignorés.  
+No-return détecté quand `sentbyte > 0` et `rcvdbyte = 0`.
 
 ---
 
 ## Object Database (ObjDB)
 
-Permet à FireAPG d'utiliser les noms d'objets existants plutôt que d'en créer de nouveaux lors de l'export.
+Permet de résoudre les CIDRs et ports en noms d'objets existants — affichage enrichi dans l'app et réutilisation des noms dans les exports CLI.
 
-### Commandes FortiGate à exécuter et coller dans l'ObjDB :
-
+### Commandes FortiGate à coller dans l'ObjDB :
 ```
 show firewall address
 show firewall address6
 show firewall service custom
 show system zone
-conf system sdwan
+config system sdwan
 show full-configuration members
 end
 ```
+> Le prompt CLI (`FW-Home # show …`) est toléré, FireAPG l'ignore automatiquement.
 
-> Le prompt CLI (`FW-Home #`) est toléré — FireAPG parse les blocs même avec les lignes de prompt intercalaires.
+### Ce qui est parsé :
+| Section | Résultat |
+|---------|----------|
+| `firewall address` / `address6` | Index CIDR → nom (IPv4 et IPv6) |
+| `firewall service custom` | Index `proto:port` → nom |
+| `system zone` | Interface → nom de zone |
+| `system sdwan` members | Interface SDWAN → zone virtuelle (`virtual-wan-link`) |
 
-### Contenu parsé :
-- **Objets adresse IPv4/IPv6** → résolution CIDR → nom dans les exports et l'affichage
-- **Objets service** → résolution proto:port → nom dans les exports et l'affichage
-- **Zones** (system zone + sdwan members) → interface → nom de zone affiché dans le REI et le Flow Lens
-
-### Convention de nommage (export CLI) :
-| Priorité | Source | Exemple |
-|----------|--------|---------|
-| 1 | ObjDB chargée | `MyWebServer`, `Custom-HTTP-8080` |
-| 2 | Builtin FG/PA | `HTTP`, `HTTPS`, `PING`, `SSH`, `RDP`… |
-| 3 | Généré | `TCP-8080`, `UDP-9999`, `Host-10.0.0.1`, `Net-10.0.0.0_24` |
+### Pour Palo Alto :
+Coller le XML de configuration des objets adresse, service, et zones. FireAPG parse les blocs `<address>`, `<service>`, `<zone>`.
 
 ---
 
-## Rule Expansion Interface (REI)
+## Convention de nommage — services
 
-L'arbre de règles au centre. Chaque nœud représente une règle candidate.
+Priorité appliquée **uniformément** dans toute l'app (affichage, tooltips, exports) :
 
-### Badges d'état :
+| Priorité | Source | Exemple |
+|----------|--------|---------|
+| 1 | Nom dans l'ObjDB chargée | `WebApp-Portal`, `Custom-DNS` |
+| 2 | Builtins FortiGate connus | `HTTP`, `HTTPS`, `DNS`, `SSH`, `RDP`, `PING`… |
+| 3 | Nom généré standard | `TCP-8080`, `UDP-9999`, `PING`, `IP-47` |
 
-| Badge | Signification | Tooltip |
-|-------|--------------|---------|
-| `🔴 NR-TCP` | TCP sans réponse (connexion refusée/bloquée) | Liste des services TCP concernés |
-| `🟠 NR-UDP?` | UDP sans réponse sur port inhabituel | Liste des services UDP suspects |
+> Sans ObjDB, `tcp-443` est affiché comme `HTTPS (tcp-443)` si le port est connu, sinon `tcp-443` brut.
+
+### Convention de nommage — adresses IP
+
+| Priorité | Source | Exemple |
+|----------|--------|---------|
+| 1 | Nom dans l'ObjDB | `SRV-WebProd`, `Net-DMZ` |
+| 2 | Généré | `Host-10.0.0.1`, `Net-10.0.0.0_24` |
+
+---
+
+## Interface — Rule Expansion Interface (REI)
+
+Arbre central de règles candidates. Chaque nœud représente une règle agrégée.
+
+### Lecture d'un nœud
+
+```
+⊕ Merged (3)  🔴 NR-TCP  🔵 SNAT
+SRC ↳ virtual-wan-link   10.0.0.1/32   10.0.0.2/32
+DST ↳ dmz                192.168.1.0/24
+SVC  HTTPS (tcp-443), DNS (udp-53), tcp-9180
+                                              1 234 fl.  [42]
+```
+
+- **↳ zone** : zone ou interface source/destination (si ObjDB chargée)
+- **Adresses** : CIDR brut, ou `NomObjDB (CIDR)` si trouvé dans l'ObjDB
+- **Services** : label lisible (`HTTPS (tcp-443)`, `tcp-9180`) ou nom ObjDB
+- **fl.** : nombre de flows couverts par ce nœud
+- **[42]** : score de permissivité 0–100
+
+### Badges
+
+| Badge | Signification | Tooltip au survol |
+|-------|--------------|-------------------|
+| `🔴 NR-TCP` | TCP sans réponse | Liste des services TCP concernés |
+| `🟠 NR-UDP?` | UDP no-return sur port inhabituel | Liste des services UDP suspects |
 | `🟡 NR-UDP` | UDP one-way normal (DNS, NTP, Syslog…) | Liste des services UDP normaux |
-| `🔵 SNAT` / `DNAT` / `SNAT+DNAT` | Flow avec NAT détecté | IPs et ports traduits |
-| `⊕ Merged (N)` | Nœud résultant d'un merge manuel | Cliquer ✕ pour annuler |
+| `🔵 SNAT` / `DNAT` / `SNAT+DNAT` | NAT détecté sur au moins un flow | IPs et ports traduits |
+| `⊕ Merged (N)` | Nœud issu d'un merge manuel | — |
 
-### Affichage dans le nœud :
-- **`SRC` ↳ zone/intf** → adresses sources avec interface/zone si ObjDB chargée
-- **`DST` ↳ zone/intf** → adresses destinations
-- **`SVC`** → services, format `NomObjDB (tcp-80)` si connu, sinon `HTTP (tcp-80)` si builtin, sinon `tcp-80`
+### Actions sur les nœuds
 
-### Actions sur les nœuds :
-- **Clic sur le toggle** `▶/▼` → développer/replier
-- **Case à cocher** → sélectionner pour export ou merge
-- **`×` sur une destination NR** → exclure cette IP de l'export (sans reconstruire l'arbre)
-- **`⊕ Merge (N)`** → fusionner N nœuds sélectionnés en une seule règle agrégée (avec undo)
+| Action | Effet |
+|--------|-------|
+| Clic `▶` / `▼` | Développer / replier les enfants |
+| Case à cocher | Sélectionner pour merge ou export partiel |
+| `×` sur une destination | Exclure cette IP des exports (sans reconstruire) |
+| `⊕ Merge (N)` | Fusionner les nœuds sélectionnés en une règle unique |
+| `✕` sur un nœud mergé | Annuler le merge |
+
+### Merge manuel
+- Fusionne sources, destinations et services de N règles en une
+- Les hôtes `/32` (et `/128` IPv6) sont **toujours conservés distincts** — seuls les réseaux (`/1`–`/31`) peuvent être agrégés en supernet
+- Les interfaces sont toutes conservées (multi-intf dans le CLI généré)
+
+---
+
+## Permissivité et ancrage
+
+### Slider (Precise → Broad)
+Contrôle le seuil de regroupement des flows. Score 0–100 par nœud basé sur :
+- **70 %** largeur des CIDRs sources et destinations
+- **30 %** nombre de services distincts
+
+| Score | Label | Comportement |
+|-------|-------|-------------|
+| 0–10 | Surgical | Règles très précises, peu de regroupement |
+| 11–35 | Precise | Regroupement léger |
+| 36–65 | Balanced | Compromis règles/granularité |
+| 66–80 | Broad | Supernets larges |
+| 81–100 | Very Broad | Agrégation maximale |
+
+### ⚡ Auto-Optimize
+Trouve automatiquement le seuil minimisant un score combiné règles × permissivité × services.
+
+### Ancrage
+- **Auto** : FireAPG choisit le meilleur ancrage selon les patterns comportementaux
+- **Fix SRC** : les sources ne sont jamais agrégées (conservées en /32)
+- **Fix DST** : les destinations ne sont jamais agrégées
+- Les deux peuvent être cochés simultanément
+
+### Filtre No-Return
+Bouton dans la barre : exclure les flows TCP NR, ou TCP + UDP suspects, du calcul de l'arbre.
 
 ---
 
 ## Flow Lens
 
-Explorateur de flux interactif en bas à droite. Permet de naviguer par dimension (Source → Destination → Service) pour comprendre qui parle à qui.
+Explorateur de flows par dimension, en bas à droite de l'écran.
 
-- **Recherche** : filtre sur valeur brute ET nom ObjDB
-- **Badge NR** visible sur chaque entrée concernée
-- **Interface/Zone** affichée si ObjDB chargée : `virtual-wan-link (wan)`
-- **Clic au dernier niveau** : met en évidence le nœud correspondant dans le REI (fonctionne quel que soit l'ordre de navigation Source/Destination/Service)
-
----
-
-## Export CLI
-
-### FortiGate
-- Objets adresse créés si absents de l'ObjDB
-- Objets service créés si absents (TCP-80, UDP-53, IP-47…)
-- Politique : `set srcintf`, `set dstintf`, `set srcaddr`, `set dstaddr`, `set service`
-- Multi-interface après merge : `set srcintf "Vlan10" "Vlan20"`
-- Toggle `🔴 Add disabled` → ajoute `set status disable` sur toutes les règles
-
-### Palo Alto
-- Même convention de nommage que FortiGate (`TCP-80`, `UDP-53`, `PING`…)
-- Multi-interface : `from [ Zone1 Zone2 ]`
-- Toggle disable → `disabled yes`
-
-### Préfixe de règle
-Personnalisable (`OPT` par défaut) → génère `OPT-ID42-001`, `OPT-ID42-002`…
+- Navigation par **Source → Destination → Service** (ordre libre, le highlight REI fonctionne quel que soit l'ordre)
+- Chaque entrée affiche le nombre de flows, le badge NR si applicable, et la zone/interface dominante pour les IPs
+- Les services s'affichent avec leur label enrichi (`HTTPS (tcp-443)`)
+- **Recherche** : filtre sur la valeur brute ET sur le nom ObjDB
+- **Clic au dernier niveau** : met en surbrillance le nœud correspondant dans le REI
 
 ---
 
 ## Insights (panneau gauche)
 
-Analyse automatique des anomalies :
-- Flux TCP no-return (connexions refusées)
-- Flux UDP suspects
-- Destinations vers des pays étrangers
-- Clusters comportementaux (sources avec patterns similaires)
+Analyse automatique affichée après chargement d'une policy :
+
+| Icône | Condition |
+|-------|-----------|
+| 🔴 TCP no-return | Flows TCP sans réponse (connexions refusées) |
+| 🟠 UDP suspect | Flows UDP sans réponse sur ports non standards |
+| 🌍 Destinations étrangères | Pays de destination détectés |
+| 🧠 Clusters comportementaux | Sources partageant ≥ 60 % de patterns destination+service |
+| 🚫 IPs exclues | IPs individuellement exclues via `×` dans le REI |
 
 ---
 
-## Limites et points non finalisés
+## Exports
 
-### Limites connues
+### CLI FortiGate
+```
+! FireAPG v0.17 — Source policy: Policy-42
+! 8 rule(s) — 01/01/2026 — rules disabled
 
-| Point | État |
-|-------|------|
-| **IPv6** | Parsé et affiché, mais agrégation CIDR IPv6 est basique (pas de supernet calculation avancée) |
-| **NAT Palo Alto** | Colonnes NAT non standardisées selon les versions PAN-OS — peut ne pas parser selon le format d'export |
-| **Merge automatique** | Pas implémenté — uniquement merge manuel avec sélection checkbox |
-| **Règles existantes** | FireAPG génère de nouvelles règles, il ne détecte pas les doublons avec des règles déjà en place |
-| **Groupes d'objets** | L'ObjDB ne parse pas les `address-group` / `service-group` — seulement les objets individuels |
-| **FG : adresses FQDN/geography** | Les objets FQDN et geography dans l'ObjDB ne sont pas résolus (marqués comme indeterminate) |
-| **PA : multi-device** | Un avertissement est affiché si les logs viennent de plusieurs devices, mais les règles ne sont pas séparées par device |
-| **Logs PA syslog (CEF)** | Seul le format CSV export est supporté pour Palo Alto. Le format syslog CEF n'est pas parsé |
-| **Durée de session** | Le champ `duration` est parsé mais non utilisé dans la logique de permissivité |
-| **Export Excel** | Généré correctement mais les filtres Excel automatiques ne sont pas posés |
+config firewall address
+edit "Host-10.0.0.5"
+  set subnet 10.0.0.5 255.255.255.255
+next
+end
 
-### Éléments partiellement implémentés
+config firewall service custom
+edit "TCP-9180"
+  set protocol TCP
+  set tcp-portrange 9180
+next
+end
 
-- **Toggle "Obj Names"** : était un on/off pour l'affichage ObjDB — maintenant les noms s'affichent toujours si disponibles. Le toggle reste visible mais ne contrôle plus l'affichage des noms (peut être refondu ou supprimé)
-- **Analyse comportementale** : les clusters sont détectés (badge Insights) mais ne sont pas utilisés pour proposer des merges automatiques
-- **No-return exclusion** : l'exclusion `×` d'une IP NR est visuelle uniquement — elle persiste dans la session mais n'est pas sauvegardée
+config firewall policy
+edit 0
+  set name "OPT-ID42-001"
+  set srcintf "virtual-wan-link"
+  set dstintf "dmz"
+  set srcaddr "Host-10.0.0.5"
+  set dstaddr "Net-192.168.1.0_24"
+  set service "HTTPS" "TCP-9180"
+  set action accept
+  set status disable
+next
+end
+```
+
+- Objets adresse IPv4 et IPv6 créés si absents de l'ObjDB
+- Objets service créés si absents (`TCP-9180`, `UDP-51822`…)
+- Multi-interface : `set srcintf "Vlan10" "Vlan20"`
+- Préfixe de règle personnalisable (défaut : `OPT`)
+- Toggle `🔴 Add disabled` → toutes les règles générées avec `set status disable`
+
+### CLI Palo Alto
+- Même convention de nommage que FortiGate (`TCP-80`, `UDP-53`, `PING`)
+- Création d'objets : `set address "Host-10.0.0.1" ip-netmask 10.0.0.1/32`
+- Multi-zone : `from [ Zone1 Zone2 ]`
+- Toggle disable → `disabled yes`
+
+### CSV
+Une ligne par règle. Colonnes fixes + colonnes optionnelles selon la disponibilité de l'ObjDB :
+- Toujours : `Rule#`, `Type`, `No-Return`, `SRC/DST Interface`, `Source/Dest CIDR(s)`, `Services`, `Flows`, `Perm.`
+- Si ObjDB chargée (adresses) : colonnes `Source Name(s)`, `Destination Name(s)` supplémentaires
+- Si ObjDB chargée (services) : colonne `Service Name(s)` supplémentaire
+- Si zones connues : colonnes `SRC Zone`, `DST Zone`
+
+### Excel (.xlsx)
+Même structure que CSV, sur deux feuilles supplémentaires :
+- **Raw Flows** : tous les flows dédupliqués avec proto, port, service, interface, pays, bytes
+- **No-Return Flows** : sous-ensemble des flows sans réponse
 
 ---
 
 ## Données et confidentialité
 
-FireAPG fonctionne **entièrement dans le navigateur**. Aucune donnée n'est envoyée à un serveur. Aucune dépendance externe (CDN, API). Le fichier HTML est auto-contenu et peut être utilisé hors-ligne.
+FireAPG fonctionne **entièrement dans le navigateur**. Aucune donnée n'est transmise à un serveur. Le fichier HTML est autonome et utilisable hors-ligne.
 
+---
+
+## Limites connues
+
+| Point | État |
+|-------|------|
+| **IPv6** | Parsé et affiché. Agrégation CIDR IPv6 basique (supernet simple, pas de résumé hiérarchique avancé) |
+| **NAT Palo Alto** | Colonnes NAT non standardisées selon les versions PAN-OS — peut ne pas parser selon l'export |
+| **Groupes d'objets** | L'ObjDB ne parse pas les `address-group` ni les `service-group` — objets individuels uniquement |
+| **FQDN / Geography** | Les objets FortiGate de type FQDN ou geography ne sont pas résolus |
+| **Logs PA syslog/CEF** | Seul le format CSV export Palo Alto est supporté |
+| **Multi-device PA** | Un avertissement est affiché si les logs proviennent de plusieurs devices ; les règles ne sont pas séparées par device |
+| **Règles existantes** | FireAPG génère de nouvelles règles ; il ne détecte pas les doublons avec des règles déjà en place sur le firewall |
+| **Merge automatique** | Uniquement manuel (sélection + bouton). Pas de proposition automatique basée sur les clusters |
+| **Sessions longue durée** | Les exclusions NR (`×`) et les merges sont en mémoire session uniquement, non sauvegardés |
