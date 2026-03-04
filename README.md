@@ -258,7 +258,7 @@ Une ligne par règle. Colonnes fixes + colonnes optionnelles selon disponibilit�
 - Si ObjDB chargée (services) : colonne `Service Name(s)`
 
 ### Excel (.xlsx)
-M�me structure que CSV, sur deux feuilles supplémentaires :
+M�me structure que CSV, sur deux feuilles supplémentaires :
 - **Raw Flows** : tous les flows dédupliqués avec proto, port, service, interface, pays, bytes
 - **No-Return Flows** : sous-ensemble des flows sans réponse
 
