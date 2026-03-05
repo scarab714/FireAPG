@@ -1,0 +1,4043 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireAPG v0.19 — Automatic Policy Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* ── AUTO THEME via prefers-color-scheme ── */
+/* ── LIGHT theme (default) ── */
+:root{
+  --bg:#f2f5f9;--sur:#ffffff;--s2:#f7f9fc;--s3:#edf1f7;
+  --b1:#dde3ed;--b2:#c8d0df;--b3:#b0bbd0;
+  --tx:#111827;--t2:#374151;--t3:#6b7280;--t4:#9ca3af;
+  --ac:#0070f3;--ac2:#0057cc;--acl:rgba(0,112,243,.1);
+  --gr:#059669;--grl:rgba(5,150,105,.1);
+  --or:#d97706;--orl:rgba(217,119,6,.1);
+  --rd:#dc2626;--rdl:rgba(220,38,38,.1);
+  --yw:#b45309;--ywl:rgba(180,83,9,.1);
+  --pu:#7c3aed;--pul:rgba(124,58,237,.1);
+  --pk:#db2777;--pkl:rgba(219,39,119,.1);
+  --nr:#ea580c;--nrl:rgba(234,88,12,.1);
+  --nat-snat:#0284c7;--nat-snatl:rgba(2,132,199,.1);
+  --nat-dnat:#7c3aed;--nat-dnatl:rgba(124,58,237,.1);
+  --nat-both:#be185d;--nat-bothl:rgba(190,24,93,.1);
+  --sh:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.06);
+  --sh2:0 8px 24px rgba(0,0,0,.12);
+  --r4:4px;--r6:6px;--r8:8px;--r10:10px;
+}
+/* ── DARK forced ── */
+html[data-theme="dark"]{
+  --bg:#0d1117;--sur:#161b22;--s2:#1c2128;--s3:#21262d;
+  --b1:#30363d;--b2:#3d444d;--b3:#4d5563;
+  --tx:#e6edf3;--t2:#b1bac4;--t3:#6e7681;--t4:#484f58;
+  --ac:#58a6ff;--ac2:#388bfd;--acl:rgba(88,166,255,.12);
+  --gr:#3fb950;--grl:rgba(63,185,80,.12);
+  --or:#d29922;--orl:rgba(210,153,34,.12);
+  --rd:#f85149;--rdl:rgba(248,81,73,.12);
+  --yw:#e3b341;--ywl:rgba(227,179,65,.12);
+  --pu:#bc8cff;--pul:rgba(188,140,255,.12);
+  --pk:#f778ba;--pkl:rgba(247,120,186,.12);
+  --nr:#ff7b54;--nrl:rgba(255,123,84,.12);
+  --nat-snat:#38bdf8;--nat-snatl:rgba(56,189,248,.12);
+  --nat-dnat:#a78bfa;--nat-dnatl:rgba(167,139,250,.12);
+  --nat-both:#f472b6;--nat-bothl:rgba(244,114,182,.12);
+  --sh:0 1px 3px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25);
+  --sh2:0 8px 32px rgba(0,0,0,.4);
+}
+/* ── AUTO: follows system when not forced ── */
+@media(prefers-color-scheme:dark){
+  html[data-theme="auto"]{
+  --bg:#0d1117;--sur:#161b22;--s2:#1c2128;--s3:#21262d;
+  --b1:#30363d;--b2:#3d444d;--b3:#4d5563;
+  --tx:#e6edf3;--t2:#b1bac4;--t3:#6e7681;--t4:#484f58;
+  --ac:#58a6ff;--ac2:#388bfd;--acl:rgba(88,166,255,.12);
+  --gr:#3fb950;--grl:rgba(63,185,80,.12);
+  --or:#d29922;--orl:rgba(210,153,34,.12);
+  --rd:#f85149;--rdl:rgba(248,81,73,.12);
+  --yw:#e3b341;--ywl:rgba(227,179,65,.12);
+  --pu:#bc8cff;--pul:rgba(188,140,255,.12);
+  --pk:#f778ba;--pkl:rgba(247,120,186,.12);
+  --nr:#ff7b54;--nrl:rgba(255,123,84,.12);
+  --nat-snat:#38bdf8;--nat-snatl:rgba(56,189,248,.12);
+  --nat-dnat:#a78bfa;--nat-dnatl:rgba(167,139,250,.12);
+  --nat-both:#f472b6;--nat-bothl:rgba(244,114,182,.12);
+  --sh:0 1px 3px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25);
+  --sh2:0 8px 32px rgba(0,0,0,.4);
+  }
+}
+/* ── LIGHT forced: nothing extra needed, :root already light ── */
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--b3)}
+
+/* ── TYPOGRAPHY SCALE ── */
+.fs-10{font-size:10px}.fs-11{font-size:11px}.fs-12{font-size:12px}.fs-13{font-size:13px}
+.fs-14{font-size:14px}.fs-15{font-size:15px}.fs-16{font-size:16px}.fs-18{font-size:18px}
+
+/* ── HEADER ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:52px;
+  background:var(--sur);border-bottom:1px solid var(--b1);
+  position:sticky;top:0;z-index:200;gap:16px;
+  box-shadow:var(--sh);
+}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-ic{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  border-radius:var(--r8);display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.logo-text{line-height:1.2}
+.logo-name{font-size:16px;font-weight:800;letter-spacing:-.5px}
+.logo-name span{color:var(--ac)}
+.logo-ver{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;font-weight:500}
+
+.hstat{display:flex;gap:20px;font-family:'JetBrains Mono',monospace}
+.hst{text-align:center}
+.hst-v{font-size:15px;font-weight:700;color:var(--ac);line-height:1}
+.hst-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+
+.hactions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.src-badge{
+  font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  padding:2px 8px;border-radius:4px;letter-spacing:.3px;
+}
+.src-forti{background:var(--orl);color:var(--or);border:1px solid var(--or);}
+.src-pa{background:var(--acl);color:var(--ac);border:1px solid var(--ac);}
+
+/* ── BUTTONS ── */
+.btn{
+  background:var(--s2);border:1px solid var(--b2);color:var(--t2);
+  padding:5px 10px;border-radius:var(--r6);
+  font-size:12px;font-family:'Inter',sans-serif;font-weight:500;
+  cursor:pointer;transition:all .12s;white-space:nowrap;line-height:1.4;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn:hover{border-color:var(--ac);color:var(--ac);background:var(--acl)}
+.btn:disabled{opacity:.35;cursor:default;pointer-events:none}
+.btn.pri{border-color:var(--gr);color:var(--gr);background:var(--grl)}
+.btn.pri:hover{background:rgba(63,185,80,.2)}
+.btn.warn{border-color:var(--or);color:var(--or);background:var(--orl)}
+.btn.info{border-color:var(--ac);color:var(--ac);background:var(--acl)}
+.btn.danger{border-color:var(--rd);color:var(--rd);background:var(--rdl)}
+.btn.sm{padding:3px 8px;font-size:11px}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:calc(100vh - 52px)}
+
+/* ── LEFT PANEL ── */
+.lp{
+  width:310px;min-width:310px;
+  background:var(--sur);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+}
+.lp-section{padding:14px 16px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.lp-section.flex-fill{flex-shrink:0;display:flex;flex-direction:column}
+
+.sec-hdr{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--t3);margin-bottom:10px;
+}
+.sec-hdr-badge{
+  font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;
+  background:var(--acl);color:var(--ac);margin-left:auto;font-family:'JetBrains Mono',monospace;
+}
+
+/* DROP ZONE */
+.dz{
+  border:2px dashed var(--b2);border-radius:var(--r8);
+  padding:16px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;
+}
+.dz:hover,.dz.over{border-color:var(--ac);background:var(--acl)}
+.dz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:22px;margin-bottom:5px}
+.dz-text{font-size:12px;color:var(--t2);font-weight:500}
+.dz-text strong{color:var(--tx)}
+.dz-hint{font-size:11px;color:var(--t3);margin-top:3px}
+.file-info{
+  font-size:12px;font-weight:500;color:var(--gr);
+  padding:6px 10px;background:var(--grl);border-radius:var(--r6);
+  border:1px solid var(--gr);margin-top:8px;display:none;
+  word-break:break-all;line-height:1.4;
+}
+
+/* SELECT */
+select{
+  width:100%;background:var(--s2);border:1px solid var(--b2);
+  color:var(--tx);padding:7px 10px;border-radius:var(--r6);
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  cursor:pointer;outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  padding-right:28px;font-weight:500;
+}
+select:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acl)}
+select:disabled{opacity:.5;cursor:default}
+
+/* SLIDER */
+.slider-hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}
+.slider-val{
+  font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;
+  line-height:1;transition:color .2s;
+}
+.slider-meta{text-align:right}
+.slider-meta-top{font-size:13px;font-weight:600;color:var(--tx)}
+.slider-meta-sub{font-size:11px;color:var(--t3);margin-top:2px}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  border-radius:2px;background:var(--b2);outline:none;cursor:pointer;margin:6px 0;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--ac);cursor:pointer;
+  box-shadow:0 0 0 3px var(--acl),0 2px 4px rgba(0,0,0,.2);
+}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace}
+.pbar{height:4px;border-radius:2px;background:var(--b2);margin:4px 0 2px;overflow:hidden}
+.pbf{height:100%;border-radius:2px;transition:width .2s,background .2s}
+
+/* ANCHOR */
+.anchor-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:10px}
+
+/* NR MODE BUTTONS */
+.nr-mode-btn{
+  background:var(--s2);border:1px solid var(--b2);color:var(--t3);
+  padding:5px 4px;border-radius:var(--r4);font-size:10px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .12s;text-align:center;
+}
+.nr-mode-btn:hover{border-color:var(--ac);color:var(--ac)}
+.nr-mode-btn.act{background:var(--rdl);border-color:var(--rd);color:var(--rd)}
+
+/* POLICY SEARCH */
+.pol-search-wrap{position:relative;margin-bottom:6px}
+.pol-search-input{
+  width:100%;padding:6px 26px 6px 28px;border-radius:var(--r6);
+  background:var(--s2);border:1px solid var(--b2);color:var(--tx);
+  font-size:12px;font-family:'Inter',sans-serif;outline:none;transition:border .15s;
+}
+.pol-search-input:focus{border-color:var(--ac)}
+.pol-search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--t3);pointer-events:none}
+.pol-list{
+  max-height:160px;overflow-y:auto;border:1px solid var(--b1);border-radius:var(--r6);
+  background:var(--sur);
+}
+.pol-item{
+  padding:7px 10px;font-size:12px;cursor:pointer;color:var(--t2);
+  border-bottom:1px solid var(--b1);transition:background .1s;
+}
+.pol-item:last-child{border-bottom:none}
+.pol-item:hover,.pol-item.act{background:var(--acl);color:var(--ac)}
+.pol-item.act{font-weight:600}
+.pol-none{padding:10px;font-size:12px;color:var(--t3);text-align:center}
+/* OBJ-DB UPLOAD SECTION IN EXPORT HUB */
+.objdb-section{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r8);
+  margin-bottom:10px;overflow:hidden;flex-shrink:0;
+}
+.objdb-toggle{
+  display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--t2);user-select:none;
+}
+.objdb-toggle:hover{background:var(--s3)}
+.objdb-toggle-icon{font-size:11px;transition:transform .2s;color:var(--t3)}
+.objdb-toggle.open .objdb-toggle-icon{transform:rotate(90deg)}
+.objdb-body{display:none;padding:10px 12px;border-top:1px solid var(--b1)}
+.objdb-body.open{display:block}
+.objdb-badge{font-size:10px;padding:1px 7px;border-radius:10px;background:var(--grl);color:var(--gr);font-weight:700;font-family:'JetBrains Mono',monospace;margin-left:auto}
+.objdb-badge.empty{background:var(--s3);color:var(--t3)}
+/* NR dst-tag strikethrough when excluded */
+.dst-tag.nr-excl{text-decoration:line-through;opacity:0.45;cursor:pointer}
+.dst-tag-x.reactivate{color:var(--gr);font-weight:700}
+/* OBJECT NAME LABEL on IPs */
+.obj-name-lbl{font-size:9px;color:var(--t2);font-style:italic;margin-left:3px;font-weight:400;white-space:nowrap}
+/* SHOW-NAMES TOGGLE CHIP */
+
+/* OBJDB CLEAR BUTTON */
+.objdb-clear{
+  font-size:10px;padding:2px 7px;border-radius:var(--r4);border:1px solid var(--b2);
+  background:transparent;color:var(--t3);cursor:pointer;margin-left:6px;
+}
+.objdb-clear:hover{border-color:var(--rd);color:var(--rd)}
+/* TRAFFIC GRID */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tcard{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r6);padding:8px 10px}
+.tcard-v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--ac)}
+.tcard-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-top:2px;font-weight:600}
+
+/* INSIGHTS */
+.insights-list{display:flex;flex-direction:column;gap:4px;min-height:80px}
+.insight{
+  background:var(--s2);border:1px solid var(--b1);
+  border-left:3px solid var(--or);border-radius:var(--r6);
+  padding:8px 10px;font-size:12px;line-height:1.5;
+}
+.insight.crit{border-left-color:var(--rd)}
+.insight.info{border-left-color:var(--ac)}
+.insight.ok{border-left-color:var(--gr)}
+.insight.warn{border-left-color:var(--yw)}
+.insight-title{font-weight:700;font-size:12px;margin-bottom:2px;color:var(--tx)}
+.insight-body{color:var(--t2);font-size:11px}
+
+/* ANCHOR TOGGLES */
+.anc-fixed-row{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.anc-toggle-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:var(--r6);background:var(--s2);border:1px solid var(--b1);cursor:pointer;transition:all .12s}
+.anc-toggle-row:hover{border-color:var(--ac)}
+.anc-toggle-row.active{background:var(--acl);border-color:var(--ac)}
+.anc-toggle-row input[type=checkbox]{accent-color:var(--ac);width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.anc-toggle-label{font-size:12px;font-weight:600;color:var(--t2);flex:1;line-height:1.3}
+.anc-toggle-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.anc-auto-badge{font-size:10px;padding:1px 6px;background:var(--acl);color:var(--ac);border-radius:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+
+/* ── RIGHT PANEL ── */
+.rp{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* GRAPH */
+.graph-area{
+  height:210px;min-height:210px;
+  background:var(--sur);border-bottom:1px solid var(--b1);
+  padding:12px 18px 10px;
+}
+.graph-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.graph-title{font-size:13px;font-weight:700}
+.graph-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.graph-legend{display:flex;gap:12px;font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace}
+.leg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+#bsvg{width:100%;height:142px}
+
+/* TREE AREA */
+.tree-area{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.tree-hdr{
+  padding:10px 18px;background:var(--sur);border-bottom:1px solid var(--b1);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;
+}
+.tree-hdr-left{}
+.tree-title{font-size:14px;font-weight:700}
+.tree-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.tree-actions{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.sel-count{
+  font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  color:var(--ac);padding:3px 8px;background:var(--acl);border-radius:10px;
+  display:none;
+}
+#tree-c{
+  flex:1;overflow-y:auto;padding:8px 18px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+}
+
+/* TREE NODES */
+.tn{margin:2px 0}
+.tr{
+  display:flex;align-items:flex-start;gap:5px;
+  padding:5px 7px;border-radius:var(--r6);
+  transition:background .1s;border:1px solid transparent;
+}
+.tr:hover{background:var(--s2);border-color:var(--b1)}
+.tr.act .nt{color:var(--tx)}
+.tr.gho .nt{color:var(--t3)}
+.tr.sel{background:var(--acl);border-color:var(--ac)}
+.tr.nr-row{border-left:3px solid var(--nr)}
+.tbtn,.cbtn{
+  width:18px;height:18px;border-radius:4px;
+  background:var(--s3);border:1px solid var(--b2);
+  cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;transition:all .1s;color:var(--t2);font-weight:700;
+}
+.tbtn:hover,.cbtn:hover{border-color:var(--ac);color:var(--ac);background:var(--acl)}
+.cbtn.ck{background:var(--ac);border-color:var(--ac);color:#fff}
+.tsp{width:18px;height:18px;flex-shrink:0}
+.nt{font-size:12px;flex:1;line-height:1.5;min-width:0}
+.ng{font-size:12px;flex:1;line-height:1.5;min-width:0;color:var(--t3)}
+.nc{margin-left:4px;border-left:2px solid var(--b2);padding-left:6px;margin-top:2px}
+.pp{
+  font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  padding:2px 7px;border-radius:10px;cursor:default;white-space:nowrap;
+}
+.nh{font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.nb{
+  display:inline-block;font-size:10px;font-weight:700;
+  padding:1px 5px;border-radius:4px;margin-right:3px;
+  font-family:'JetBrains Mono',monospace;vertical-align:middle;
+}
+.ns{background:var(--grl);color:var(--gr)}
+.nd{background:var(--orl);color:var(--or)}
+.nv{background:var(--pul);color:var(--pu)}
+.n6{background:var(--acl);color:var(--ac)}
+.nnr{background:var(--nrl);color:var(--nr)}
+.dst-list{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+.dst-tag{
+  font-size:11px;background:var(--s3);border:1px solid var(--b1);
+  border-radius:4px;padding:1px 6px;color:var(--t2);
+}
+.dst-tag.nr{border-color:var(--nr);color:var(--nr);background:var(--nrl)}
+
+/* NO-RETURN CATEGORIES */
+/* NAT badges */
+.nb.nat-snat{background:var(--nat-snatl);color:var(--nat-snat)}
+.nb.nat-dnat{background:var(--nat-dnatl);color:var(--nat-dnat)}
+.nb.nat-both{background:var(--nat-bothl);color:var(--nat-both)}
+/* ── THEME TOGGLE BUTTON ── */
+.theme-btn{
+  background:none;border:1px solid var(--b2);color:var(--t3);
+  width:30px;height:30px;border-radius:var(--r6);
+  font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .12s;flex-shrink:0;
+}
+.theme-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--acl)}
+
+/* ── EMPTY-DST NODE (all dsts excluded) ── */
+.tr.empty-node{opacity:.55;border-left:3px solid var(--or)!important;}
+.empty-node-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;
+  background:var(--orl);color:var(--or);border:1px solid var(--or);
+  border-radius:4px;padding:1px 6px;flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+}
+.empty-node-restore{
+  background:none;border:none;color:var(--or);cursor:pointer;
+  font-size:10px;text-decoration:underline;padding:0 2px;
+  font-family:'Inter',sans-serif;
+}
+.empty-node-restore:hover{color:var(--tx)}
+
+/* ── TREATED NODE ── */
+.tr.treated{opacity:.5;border-left:3px solid var(--gr)!important;}
+.treated-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;
+  background:var(--grl);color:var(--gr);border:1px solid var(--gr);
+  border-radius:4px;padding:1px 6px;cursor:pointer;flex-shrink:0;
+  font-family:'JetBrains Mono',monospace;
+}
+.treated-badge:hover{background:rgba(63,185,80,.25)}
+.treated-note-inline{
+  font-size:10px;color:var(--gr);font-style:italic;
+  max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.treated-counter{
+  font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  background:var(--grl);color:var(--gr);border:1px solid var(--gr);
+  border-radius:4px;padding:2px 8px;display:none;
+}
+.treated-counter.vis{display:inline}
+.note-popup{
+  position:fixed;z-index:9999;
+  background:var(--sur);border:1px solid var(--b2);border-radius:var(--r8);
+  padding:14px 16px;box-shadow:var(--sh2);min-width:280px;max-width:340px;
+}
+.note-popup h4{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:8px}
+.note-popup input{
+  width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--tx);
+  padding:6px 10px;border-radius:var(--r6);font-size:12px;outline:none;
+  font-family:'Inter',sans-serif;margin-bottom:10px;box-sizing:border-box;
+}
+.note-popup input:focus{border-color:var(--ac)}
+.note-popup .np-actions{display:flex;gap:6px;justify-content:flex-end}
+
+/* NR-TCP: always suspect — red/orange */
+.tr.nr-tcp{border-left:3px solid var(--rd)}
+.nb.nnr-tcp{background:var(--rdl);color:var(--rd)}
+/* NR-UDP known (syslog, NTP, SNMP trap, DNS...) — yellow/muted */
+.tr.nr-udp-ok{border-left:3px solid var(--yw)}
+.nb.nnr-udp-ok{background:var(--ywl);color:var(--yw)}
+/* NR-UDP suspect — orange */
+.tr.nr-udp-sus{border-left:3px solid var(--nr)}
+.nb.nnr-udp-sus{background:var(--nrl);color:var(--nr)}
+.dst-tag.nr-tcp{border-color:var(--rd);color:var(--rd);background:var(--rdl)}
+.dst-tag.nr-udp-ok{border-color:var(--yw);color:var(--yw);background:var(--ywl)}
+.dst-tag.nr-udp-sus{border-color:var(--nr);color:var(--nr);background:var(--nrl)}
+/* × dismiss button on NR dst tags */
+.dst-tag-x{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:13px;height:13px;border-radius:50%;font-size:9px;font-weight:700;
+  background:rgba(0,0,0,.15);cursor:pointer;margin-left:3px;flex-shrink:0;
+  line-height:1;vertical-align:middle;
+}
+.dst-tag-x:hover{background:rgba(0,0,0,.35)}
+.es{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--t3);text-align:center;padding:40px;
+}
+.es-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+.es-title{font-size:16px;font-weight:700;color:var(--t2);margin-bottom:6px}
+.es-sub{font-size:13px;color:var(--t3);line-height:1.5}
+
+/* STATUS BAR */
+.status-bar{
+  padding:6px 18px;background:var(--s2);border-top:1px solid var(--b1);
+  display:flex;align-items:center;gap:8px;font-size:11px;color:var(--t3);font-weight:500;
+}
+.sd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sd.idle{background:var(--t4)}
+.sd.ok{background:var(--gr)}
+.sd.busy{background:var(--or);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes nodeHighlight{
+  0%{background:var(--acl);border-color:var(--ac);box-shadow:0 0 0 3px rgba(88,166,255,.3)}
+  60%{background:var(--acl);border-color:var(--ac);box-shadow:0 0 0 0 rgba(88,166,255,0)}
+  100%{background:transparent;border-color:transparent;box-shadow:none}
+}
+.tr.fl-highlight{animation:nodeHighlight 2s ease-out forwards!important;}
+
+/* ── SLIDE-OVER PANELS ── */
+.spanel{
+  position:fixed;right:0;top:52px;height:calc(100vh - 52px);
+  width:520px;background:var(--sur);border-left:1px solid var(--b1);
+  display:flex;flex-direction:column;z-index:150;
+  transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow:var(--sh2);
+}
+.spanel.open{transform:translateX(0)}
+.sp-hdr{
+  padding:16px 18px;border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.sp-title{font-size:16px;font-weight:700}
+.sp-sub{font-size:12px;color:var(--t3);margin-top:2px}
+.sp-body{flex:1;overflow-y:auto;padding:16px 18px}
+.sp-foot{padding:12px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;align-items:center;flex-shrink:0}
+.sp-footer-note{
+  font-size:11px;color:var(--t3);padding:8px 12px;
+  background:var(--orl);border-radius:var(--r6);border:1px solid var(--or);
+  margin:0 18px 12px;flex-shrink:0;line-height:1.4;
+}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--b1);flex-shrink:0}
+.tab{
+  padding:10px 16px;font-size:13px;font-weight:600;
+  cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;
+  transition:all .15s;white-space:nowrap;
+}
+.tab:hover{color:var(--tx)}
+.tab.act{color:var(--ac);border-bottom-color:var(--ac)}
+.tab-pane{display:none;height:100%;flex-direction:column}
+.tab-pane.act{display:flex}
+
+/* CODE OUTPUT */
+.code-out{
+  flex:1;overflow-y:auto;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r6);
+  padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  line-height:1.6;color:var(--tx);white-space:pre;cursor:pointer;
+  margin-bottom:10px;
+}
+.code-out:hover{border-color:var(--ac)}
+.hub-info{font-size:11px;color:var(--t3);margin-left:auto}
+
+/* FLOW LENS */
+.fl-entry{
+  padding:9px 12px;border-radius:var(--r6);border:1px solid var(--b1);
+  background:var(--s2);margin-bottom:4px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;transition:all .1s;
+}
+.fl-entry:hover{border-color:var(--ac);background:var(--acl)}
+.fl-svc-entry:hover{border-color:var(--pu);background:var(--pul)}
+.fl-label{flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);font-weight:500}
+.fl-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3)}
+.fl-arrow{font-size:14px;color:var(--t3);margin-left:2px;font-weight:700}
+.fl-entry:hover .fl-arrow{color:var(--ac)}
+.fl-svc-entry:hover .fl-arrow{color:var(--pu)}
+.fl-nr{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid;white-space:nowrap;flex-shrink:0}
+/* Dimension selector buttons */
+.fl-dim-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:var(--r6);border:1px solid var(--b1);
+  background:var(--s2);color:var(--t2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;
+}
+.fl-dim-btn:hover,.fl-dim-btn.active{
+  border-color:var(--ac);background:var(--acl);color:var(--ac);
+}
+/* Breadcrumb */
+.fl-crumb{
+  font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;
+  padding:2px 6px;border-radius:var(--r4);transition:all .1s;
+  font-family:'JetBrains Mono',monospace;
+}
+.fl-crumb:hover{color:var(--ac);background:var(--acl)}
+.fl-crumb-act{color:var(--tx);cursor:default;}
+.fl-crumb-act:hover{background:transparent;color:var(--tx)}
+.fl-crumb-sep{color:var(--t4);font-size:14px;}
+/* Clear All button */
+.btn-clear-all{
+  display:none;padding:4px 10px;border-radius:var(--r4);border:1px solid var(--rd);
+  background:transparent;color:var(--rd);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;margin-top:4px;
+}
+.btn-clear-all:hover{background:var(--rdl);}
+.btn-clear-all.visible{display:inline-flex;align-items:center;gap:4px;}
+/* Merged node badge */
+.merged-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;padding:1px 6px;border-radius:var(--r4);
+  background:var(--pul);color:var(--pu);border:1px solid var(--pu);
+  font-weight:600;white-space:nowrap;flex-shrink:0;
+}
+.merged-badge .unmerge-btn{
+  cursor:pointer;font-size:11px;margin-left:2px;color:var(--pu);
+  border:none;background:transparent;padding:0;line-height:1;
+}
+.merged-badge .unmerge-btn:hover{color:var(--rd);}
+
+/* LOADING OVERLAY */
+.lov{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center;z-index:500;
+}
+.lov.on{display:flex}
+.lob{
+  background:var(--sur);border-radius:var(--r10);padding:24px 32px;
+  text-align:center;box-shadow:var(--sh2);min-width:200px;
+}
+.sp{
+  width:32px;height:32px;border:3px solid var(--b2);
+  border-top-color:var(--ac);border-radius:50%;
+  animation:spin .7s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lob-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.lob-sub{font-size:12px;color:var(--t3)}
+
+/* TOOLTIP */
+.tipel{
+  position:fixed;background:var(--tx);color:var(--bg);
+  font-size:11px;padding:5px 10px;border-radius:var(--r4);
+  pointer-events:none;z-index:999;display:none;
+  max-width:240px;line-height:1.5;font-weight:500;
+  box-shadow:var(--sh2);
+}
+
+/* PA multi-device notice */
+.pa-device-notice{
+  font-size:11px;color:var(--or);padding:6px 9px;
+  background:var(--orl);border:1px solid var(--or);
+  border-radius:var(--r6);margin-top:6px;display:none;line-height:1.4;
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-ic">🔥</div>
+    <div class="logo-text">
+      <div class="logo-name">Fire<span>APG</span></div>
+      <div class="logo-ver">v0.19</div>
+    </div>
+  </div>
+  <div class="hstat">
+    <div class="hst"><div class="hst-v" id="h-flows">—</div><div class="hst-l">Flows</div></div>
+    <div class="hst"><div class="hst-v" id="h-rules">—</div><div class="hst-l">Rules</div></div>
+    <div class="hst"><div class="hst-v" id="h-perm">—</div><div class="hst-l">Avg Perm</div></div>
+    <div class="hst"><div class="hst-v" id="h-nr" style="color:var(--nr)">—</div><div class="hst-l">No-Return</div></div>
+  </div>
+  <div class="hactions">
+    <span class="src-badge" id="src-badge-hdr" style="display:none"></span>
+    <span class="treated-counter" id="treated-counter"></span>
+    <button class="btn" id="b-exp-open" disabled>🔍 Flow Lens</button>
+    <button class="btn warn" id="b-optimize" disabled>⚡ Auto-Optimize</button>
+    <button class="theme-btn" id="b-theme" title="Toggle light/dark theme">🌙</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- LEFT PANEL -->
+  <div class="lp">
+
+    <!-- LOG IMPORT -->
+    <div class="lp-section">
+      <div class="sec-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        <span>📂 Log File</span>
+        <button class="btn-clear-all" id="btn-clear-all" title="Reset everything">🗑 Clear all</button>
+      </div>
+      <div class="dz" id="uz">
+        <input type="file" id="fi" accept=".csv,.log,.txt">
+        <div class="dz-icon">📄</div>
+        <div class="dz-text"><strong>Drop file here</strong> or click</div>
+        <div class="dz-hint">FortiGate log · Palo Alto CSV</div>
+      </div>
+      <div class="file-info" id="finfo"></div>
+      <div class="pa-device-notice" id="pa-multi-dev"></div>
+    </div>
+
+    <!-- POLICY SELECT -->
+    <div class="lp-section">
+      <div class="sec-hdr">🎯 Policy</div>
+      <div class="pol-search-wrap">
+        <span class="pol-search-icon">🔍</span>
+        <input type="text" class="pol-search-input" id="pol-search" placeholder="— Import a log file first —" disabled autocomplete="off">
+        <span id="pol-clear" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:14px;color:var(--t3);line-height:1;padding:2px 4px;z-index:2" title="Clear">✕</span>
+      </div>
+      <div class="pol-list" id="pol-list">
+        <div class="pol-none">No policies loaded</div>
+      </div>
+    </div>
+
+    <!-- OBJECT DATABASE -->
+    <div class="lp-section" id="objdb-lp-section">
+      <div class="objdb-section">
+        <div class="objdb-toggle" id="objdb-main-toggle">
+          <span class="objdb-toggle-icon">▶</span>
+          <span>📂 Object Database</span>
+          <span class="objdb-badge empty" id="objdb-main-badge">Not loaded</span>
+          <button class="objdb-clear" id="objdb-clear-btn" style="display:none" title="Clear object database">✕ Clear</button>
+        </div>
+        <div class="objdb-body" id="objdb-main-body">
+          <div style="font-size:11px;color:var(--t3);margin-bottom:6px;line-height:1.5" id="objdb-hint">Load a log file first to detect the vendor format.</div>
+          <!-- CLI commands help -->
+          <div id="objdb-cmd-section" style="display:none;margin-bottom:8px">
+            <button class="btn sm" id="objdb-cmd-btn" style="font-size:10px;padding:3px 8px;background:transparent;border-color:var(--t4);color:var(--t3)" title="Show CLI commands to collect object data">📋 CLI commands</button>
+            <div id="objdb-cmd-panel" style="display:none;margin-top:6px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r6);padding:10px;font-size:11px"></div>
+          </div>
+          <div class="dz" id="objdb-main-dz" style="padding:10px;display:none">
+            <input type="file" id="objdb-main-fi" accept=".txt,.conf,.log">
+            <div class="dz-text" id="objdb-dz-label"><strong>Drop</strong> or click — CLI config .txt</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- PERMISSIVENESS -->
+    <div class="lp-section">
+      <div class="sec-hdr">🎚 Permissiveness</div>
+      <div class="slider-hdr">
+        <div class="slider-val" id="pval" style="color:var(--ac)">80</div>
+        <div class="slider-meta">
+          <div class="slider-meta-top" id="pmain">—</div>
+          <div class="slider-meta-sub" id="psub">rules at current level</div>
+        </div>
+      </div>
+      <input type="range" id="pslider" min="0" max="100" value="20">
+      <div class="slider-labels"><span>Precise</span><span>Balanced</span><span>Broad</span></div>
+      <div class="pbar"><div class="pbf" id="pbf" style="width:80%;background:var(--ac)"></div></div>
+      <!-- AGGREGATION INFO -->
+      <div id="agg-info" style="font-size:10px;color:var(--t3);margin-top:6px;line-height:1.6;font-family:'JetBrains Mono',monospace;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r6);padding:5px 8px;display:none">
+        <span id="agg-src"></span><br><span id="agg-dst"></span>
+      </div>
+      <!-- AGGREGATION MODE -->
+      <div style="margin-top:10px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          Aggregation mode
+          <span class="anc-auto-badge" id="anc-auto-lbl">AUTO</span>
+        </div>
+        <div class="anc-fixed-row">
+          <label class="anc-toggle-row" id="anc-row-src">
+            <input type="checkbox" id="anc-fix-src">
+            <div>
+              <div class="anc-toggle-label">🔒 Fix sources as /32</div>
+              <div class="anc-toggle-sub">Don't aggregate source IPs — keep exact hosts</div>
+            </div>
+          </label>
+          <label class="anc-toggle-row" id="anc-row-dst">
+            <input type="checkbox" id="anc-fix-dst">
+            <div>
+              <div class="anc-toggle-label">🔒 Fix destinations as /32</div>
+              <div class="anc-toggle-sub">Don't aggregate destination IPs — keep exact hosts</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <!-- NO-RETURN EXCLUSION -->
+      <div style="margin-top:10px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:6px">No-return exclusion</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px" id="nr-mode-btns">
+          <button class="nr-mode-btn act" data-nrm="none" title="Show all no-return flows">Show all</button>
+          <button class="nr-mode-btn" data-nrm="tcp" title="Exclude TCP no-return (connection refused / blocked)">Excl. 🔴 TCP</button>
+          <button class="nr-mode-btn" data-nrm="tcp-udp-sus" title="Exclude TCP + suspect UDP — 🟡 syslog/NTP/SNMP kept">Excl. non-normal</button>
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:5px;line-height:1.5">
+          🔴 TCP NR &nbsp;·&nbsp; 🟠 UDP suspect &nbsp;·&nbsp; 🟡 UDP one-way normal (kept)
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAFFIC SUMMARY -->
+    <div class="lp-section">
+      <div class="sec-hdr">📊 Traffic Summary</div>
+      <div class="tgrid">
+        <div class="tcard"><div class="tcard-v" id="t-src">—</div><div class="tcard-l">Sources</div></div>
+        <div class="tcard"><div class="tcard-v" id="t-dst">—</div><div class="tcard-l">Destinations</div></div>
+        <div class="tcard"><div class="tcard-v" id="t-svc">—</div><div class="tcard-l">Services</div></div>
+        <div class="tcard"><div class="tcard-v" id="t-tot">—</div><div class="tcard-l">Total flows</div></div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="lp-section flex-fill">
+      <div class="sec-hdr">💡 Security Insights</div>
+      <div class="insights-list" id="il">
+        <div style="color:var(--t3);font-size:12px;font-weight:500">Load a log file to see insights.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rp">
+    <!-- GRAPH -->
+    <div class="graph-area">
+      <div class="graph-hdr">
+        <div>
+          <div class="graph-title">Balance Graph — Rules vs Permissiveness</div>
+          <div class="graph-sub">Click the curve to set threshold · Blue dots = natural breakpoints</div>
+        </div>
+        <div class="graph-legend">
+          <span><span class="leg-dot" style="background:var(--ac)"></span>Curve</span>
+          <span><span class="leg-dot" style="background:var(--ac2)"></span>Natural pts</span>
+          <span><span class="leg-dot" style="background:var(--yw)"></span>Current</span>
+          <span><span class="leg-dot" style="background:var(--gr)"></span>Optimal</span>
+        </div>
+      </div>
+      <svg id="bsvg"></svg>
+    </div>
+
+    <!-- TREE -->
+    <div class="tree-area">
+      <div class="tree-hdr">
+        <div class="tree-hdr-left">
+          <div class="tree-title">Rule Expansion Interface</div>
+          <div class="tree-sub" id="tsub">Perm = CIDR×70% + SVC×30% · 🟠 = no-return flows</div>
+        </div>
+        <div class="tree-actions">
+          <span class="sel-count" id="scnt"></span>
+          <button class="btn sm" id="b-exp">＋ All</button>
+          <button class="btn sm" id="b-col">－ All</button>
+          <button class="btn sm" id="b-sa">☑ All</button>
+          <button class="btn sm" id="b-ua">☐ None</button>
+          <button class="btn sm" id="b-merge" style="display:none;background:var(--pul);border-color:var(--pu);color:var(--pu)">⊕ Merge</button>
+          <button class="btn sm" id="b-treat" style="display:none;background:var(--grl);border-color:var(--gr);color:var(--gr)">✓ Traité</button>
+          <button class="btn sm pri" id="b-hub-trigger" disabled>📦 Export</button>
+        </div>
+      </div>
+      <div id="tree-c">
+        <div class="es">
+          <div class="es-icon">🌲</div>
+          <div class="es-title">No data loaded</div>
+          <div class="es-sub">Import a log file and select a policy to begin analysis.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="sd idle" id="sdot"></div>
+      <span id="stxt">Idle — Import a log file</span>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT HUB PANEL -->
+<div class="spanel" id="hubp">
+  <div class="sp-hdr">
+    <div>
+      <div class="sp-title" style="color:var(--pk)">📦 Export Hub</div>
+      <div class="sp-sub" id="hub-info-hdr">Select rules then export</div>
+    </div>
+    <button class="btn sm" id="b-hubclose">✕ Close</button>
+  </div>
+  <div class="tabs">
+    <div class="tab act" data-ht="forti">🟠 FortiGate</div>
+    <div class="tab" data-ht="pa">🔵 Palo Alto</div>
+    <div class="tab" data-ht="csv">📄 CSV</div>
+    <div class="tab" data-ht="xlsx">📊 Excel</div>
+  </div>
+
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+    <!-- FORTI -->
+    <div class="tab-pane act" data-hp="forti" style="padding:16px 18px;flex-direction:column">
+      <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--t2);font-weight:500">Rule prefix:</span>
+        <input id="forti-prefix" value="OPT" style="background:var(--s2);border:1px solid var(--b2);color:var(--tx);padding:4px 8px;border-radius:var(--r4);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;width:100px">
+        <button class="btn sm" id="b-forti-regen">↻ Refresh</button>
+        <button class="btn sm" id="b-forti-disable" data-on="0" style="margin-left:4px">🔴 Add disabled</button>
+        <button class="btn sm" id="b-forti-treated" data-on="0" style="margin-left:4px">✓ Inclure traités</button>
+      </div>
+      <pre id="forti-out" class="code-out"></pre>
+      <div class="sp-foot" style="padding:0;border:none">
+        <button class="btn pri" id="b-forti-copy">📋 Copy</button>
+        <button class="btn pri" id="b-forti-dl">💾 Download .txt</button>
+        <span class="hub-info" id="forti-info"></span>
+      </div>
+    </div>
+    <!-- PA -->
+    <div class="tab-pane" data-hp="pa" style="padding:16px 18px;flex-direction:column">
+      <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--t2);font-weight:500">Rule prefix:</span>
+        <input id="pa-prefix" value="OPT" style="background:var(--s2);border:1px solid var(--b2);color:var(--tx);padding:4px 8px;border-radius:var(--r4);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;width:100px">
+        <button class="btn sm" id="b-pa-regen">↻ Refresh</button>
+        <button class="btn sm" id="b-pa-disable" data-on="0" style="margin-left:4px">🔴 Add disabled</button>
+        <button class="btn sm" id="b-pa-treated" data-on="0" style="margin-left:4px">✓ Inclure traités</button>
+      </div>
+      <pre id="pa-out" class="code-out"></pre>
+      <div class="sp-foot" style="padding:0;border:none">
+        <button class="btn warn" id="b-pa-copy">📋 Copy</button>
+        <button class="btn warn" id="b-pa-dl">💾 Download .txt</button>
+        <span class="hub-info" id="pa-info"></span>
+      </div>
+    </div>
+    <!-- CSV -->
+    <div class="tab-pane" data-hp="csv" style="padding:16px 18px;flex-direction:column">
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;color:var(--t2);font-weight:500">Exports selected (or all active) rules as CSV.</span>
+        <button class="btn sm" id="b-csv-treated" data-on="0">✓ Inclure traités</button>
+      </div>
+      <pre id="csv-prev" class="code-out"></pre>
+      <div class="sp-foot" style="padding:0;border:none">
+        <button class="btn pri" id="b-csv-copy">📋 Copy</button>
+        <button class="btn pri" id="b-csv-dl">💾 Download .csv</button>
+        <span class="hub-info" id="csv-info"></span>
+      </div>
+    </div>
+    <!-- XLSX -->
+    <div class="tab-pane" data-hp="xlsx" style="padding:16px 18px;flex-direction:column">
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn sm" id="b-xlsx-treated" data-on="0">✓ Inclure traités</button>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.7;font-weight:500">
+        Generates a multi-sheet Excel workbook:<br>
+        • <strong style="color:var(--tx)">FireAPG Rules</strong> — selected/active rules with full metadata<br>
+        • <strong style="color:var(--tx)">Raw Flows</strong> — deduplicated flows from the loaded policy<br>
+        • <strong style="color:var(--tx)">No-Return Flows</strong> — flows where bytes received = 0
+      </div>
+      <div class="sp-foot" style="padding:0;border:none">
+        <button class="btn" style="border-color:var(--yw);color:var(--yw)" id="b-xlsx-dl">📊 Download .xlsx</button>
+        <span class="hub-info" id="xlsx-info"></span>
+      </div>
+    </div>
+  </div>
+  <div class="sp-footer-note" id="hub-footer-note">⚠️ Verify interface names and create address objects before applying to production.</div>
+</div>
+
+<!-- FLOW LENS PANEL -->
+<div class="spanel" id="expp">
+  <div class="sp-hdr">
+    <div>
+      <div class="sp-title" style="color:var(--pu)">🔍 Flow Lens</div>
+      <div class="sp-sub" id="exp-sub">Choose a starting dimension</div>
+    </div>
+    <button class="btn sm" id="b-expclose">✕ Close</button>
+  </div>
+  <!-- Breadcrumb -->
+  <div id="fl-breadcrumb" style="padding:6px 12px;border-bottom:1px solid var(--b1);font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:36px;background:var(--s2)"></div>
+  <!-- Search bar -->
+  <div style="padding:6px 12px;border-bottom:1px solid var(--b1);background:var(--s2)">
+    <input type="text" id="fl-search" placeholder="🔍 Filter…" autocomplete="off"
+      style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--b1);border-radius:var(--r6);padding:5px 10px;font-size:12px;color:var(--t1);outline:none">
+  </div>
+  <div class="sp-body" id="exp-body"></div>
+</div>
+
+<div class="lov" id="lov"><div class="lob"><div class="sp"></div><div class="lob-title">Analyzing…</div><div class="lob-sub" id="lmsg"></div></div></div>
+<div class="tipel" id="tip"></div>
+<div class="note-popup" id="note-popup" style="display:none">
+  <h4>📝 Note (optionnelle)</h4>
+  <input type="text" id="note-input" placeholder="Ex: Validé — monitoring interne" maxlength="120">
+  <div class="np-actions">
+    <button class="btn sm" id="note-cancel">Annuler</button>
+    <button class="btn sm pri" id="note-confirm">✓ Marquer traité</button>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// FIREAPG v0.19
+// Behavioral clustering · Service permissiveness · Existing rules
+// Overlap detection · Auto-optimize · Zones · Flow Lens free navigation
+// ================================================================
+
+const SVC_NAMES={
+  '6:20':'FTP-Data','6:21':'FTP','6:22':'SSH','6:23':'Telnet','6:25':'SMTP',
+  '6:53':'DNS-TCP','17:53':'DNS','17:67':'DHCP','17:68':'DHCP',
+  '6:80':'HTTP','6:88':'Kerberos','17:88':'Kerberos','6:110':'POP3',
+  '6:111':'RPC','17:111':'RPC','6:123':'NTP','17:123':'NTP',
+  '17:137':'NetBIOS-NS','17:138':'NetBIOS-DG','6:139':'NetBIOS-SS',
+  '6:143':'IMAP','17:161':'SNMP','17:162':'SNMP-Trap',
+  '6:389':'LDAP','17:389':'LDAP','6:443':'HTTPS','6:445':'SMB',
+  '6:464':'Kerberos-CPW','17:514':'Syslog','6:514':'Syslog-TCP',
+  '6:587':'SMTP-TLS','6:636':'LDAPS','6:993':'IMAPS','6:995':'POP3S',
+  '6:1433':'MSSQL','6:1521':'Oracle','6:2049':'NFS','17:2049':'NFS',
+  '6:3306':'MySQL','6:3389':'RDP','17:4500':'IPsec-NAT','17:500':'IKE',
+  '17:5060':'SIP','6:5060':'SIP-TCP','6:5061':'SIP-TLS',
+  '6:5432':'PostgreSQL','6:5671':'AMQPS','6:5672':'AMQP',
+  '6:5985':'WinRM','6:5986':'WinRM-HTTPS',
+  '6:6379':'Redis','6:8080':'HTTP-Alt','6:8443':'HTTPS-Alt',
+  '6:9200':'Elasticsearch','1:0':'ICMP','58:0':'ICMPv6',
+};
+const PA_PROTO={'tcp':6,'udp':17,'icmp':1,'icmpv6':58,'gre':47,'esp':50,'ah':51,'ospf':89,'igmp':2};
+const PRIVATE_RANGES=[{s:167772160,e:184549375},{s:2886729728,e:2887778303},{s:3232235520,e:3232301055}];
+
+// UDP ports that are expected to be one-way (syslog, NTP, SNMP trap, DHCP, DNS, etc.)
+const NR_UDP_NORMAL_PORTS=new Set([53,67,68,123,137,138,161,162,514,4500,500,6514,520,5353,1900,5005,5006,2055,9995,9996]);
+function nrCategory(flow){
+  if(!flow.noReturn)return null;
+  if(flow.proto===6)return 'tcp';
+  if(flow.proto===17)return NR_UDP_NORMAL_PORTS.has(flow.port)?'udp-ok':'udp-sus';
+  return 'udp-sus';
+}
+
+let S={
+  policies:{},selPol:null,flows:[],tree:null,perm:80,
+  curve:{pts:[],nat:[]},optimalPerm:null,
+  anchorMode:'auto',
+  fixSrc:false, fixDst:false,
+  nrMode:'none',
+  nrExcludedDsts:new Set(),
+  nrExcludedSrcs:new Set(),  // future-proof: excluded source IPs
+  fileSource:'forti',
+  expFilter:null,expFilterType:null,expTab:'src',
+  expDrill:[],          // stack: [{dim:'src'|'dst'|'svc', value:string}]
+  expDimOrder:['src','dst','svc'],  // user-chosen navigation order
+  expSearch:'',         // live search filter in flow lens
+  hubTab:'forti',
+  _highlightId:null,
+  themeOverride:null,   // null=auto | 'light' | 'dark'
+  treated:new Set(),    // Set<nodeSignature> — content-based stable ID
+  treatedNotes:new Map(),// Map<nodeSignature, string>
+  objDb:{
+    forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},
+    pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}
+  },
+};
+
+// Stable content-based signature for a node (survives perm changes)
+function nodeSig(n){
+  return[...n.srcs].sort().join('|')+'→'+[...n.dsts].sort().join('|')+'@'+[...n.svcs].sort().join(',');
+}
+
+// ================================================================
+// TOOLTIP
+// ================================================================
+function showTip(ev,html){
+  const t=document.getElementById('tip');t.innerHTML=html;t.style.display='block';
+  const x=Math.min(ev.clientX+12,window.innerWidth-260);
+  const y=Math.min(ev.clientY+12,window.innerHeight-80);
+  t.style.left=x+'px';t.style.top=y+'px';
+}
+function hideTip(){document.getElementById('tip').style.display='none';}
+
+// ================================================================
+// STATUS / LOADING
+// ================================================================
+function setStatus(msg,ok=false){
+  const dot=document.getElementById('sdot'),txt=document.getElementById('stxt');
+  txt.textContent=msg;dot.className='sd '+(ok?'ok':'busy');
+}
+function setLoad(on,msg=''){
+  const ov=document.getElementById('lov');
+  ov.classList.toggle('on',on);
+  if(msg)document.getElementById('lmsg').textContent=msg;
+}
+function copyBtn(id,txt){
+  navigator.clipboard.writeText(txt).then(()=>{
+    const b=document.getElementById(id);const orig=b.textContent;
+    b.textContent='✓ Copied';setTimeout(()=>b.textContent=orig,1500);
+  });
+}
+function downloadText(text,fname){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=fname;a.click();URL.revokeObjectURL(a.href);
+}
+function downloadCSV(text,fname){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=fname;a.click();URL.revokeObjectURL(a.href);
+}
+
+// ================================================================
+// SERVICE FORMATTING
+// ================================================================
+function fmtSvc(proto,port){
+  const k=`${proto}:${port}`;
+  const pn=proto===6?'tcp':proto===17?'udp':proto===1?'icmp':proto===58?'icmpv6':`proto${proto}`;
+  if(SVC_NAMES[k])return `${SVC_NAMES[k]} (${pn}-${port})`;
+  if(proto===1)return port===0?'ICMP':`ICMP-type${port}`;
+  if(proto===58)return port===0?'ICMPv6':`ICMPv6-type${port}`;
+  if(proto===6)return `tcp-${port}`;
+  if(proto===17)return `udp-${port}`;
+  return `IP-${proto}`;
+}
+
+// ================================================================
+// LOG PARSERS (FortiGate + Palo Alto CSV)
+// ================================================================
+function detectFormat(text){
+  const first=text.split('\n').find(l=>l.trim().length>20)||'';
+  if(first.includes('Source address')||first.includes('Destination address')||(first.includes(',')&&first.toLowerCase().includes('zone')))return 'pa';
+  return 'forti';
+}
+function parseFGLine(line){
+  const f={},re=/(\w+)=(?:"([^"]*)"|(\S+))/g;let m;
+  while((m=re.exec(line))!==null)f[m[1]]=m[2]!==undefined?m[2]:m[3];
+  return f;
+}
+function parseFortinet(text){
+  const pols={};
+  for(const raw of text.split('\n')){
+    const f=parseFGLine(raw.trim());
+    if(!f.srcip||!f.dstip)continue;
+    if(!['accept','close','timeout'].includes(f.action))continue;
+    if(f.type!=='traffic')continue;
+    const proto=parseInt(f.proto)||0,port=parseInt(f.dstport)||0;
+    if(!proto&&!port)continue;
+    const pid=f.policyid||'0',pn=f.policyname||`Policy-${pid}`;
+    if(!pols[pid])pols[pid]={id:pid,name:pn,flows:[],source:'forti'};
+    const isV6=f.srcip.includes(':')||f.dstip.includes(':');
+    const sentbyte=parseInt(f.sentbyte)||0,rcvdbyte=parseInt(f.rcvdbyte)||0;
+    // Parse NAT info
+    const natDisp=f.trandisp||'';
+    let natInfo=null;
+    if(natDisp&&natDisp!=='noop'){
+      natInfo={type:natDisp};
+      if(f.transip)natInfo.snatIp=f.transip;
+      if(f.transport)natInfo.snatPort=f.transport;
+      if(f.tranip)natInfo.dnatIp=f.tranip;
+      if(f.tranport)natInfo.dnatPort=f.tranport;
+    }
+    pols[pid].flows.push({
+      srcip:f.srcip,dstip:f.dstip,proto,port,
+      svcKey:`${proto}:${port}`,svc:fmtSvc(proto,port),
+      srcintf:f.srcintf||'',dstintf:f.dstintf||'',
+      dstcountry:f.dstcountry||'',sentbyte,rcvdbyte,
+      duration:parseInt(f.duration)||0,
+      noReturn:sentbyte>0&&rcvdbyte===0,isV6,source:'forti',
+      nat:natInfo,
+    });
+  }
+  return pols;
+}
+function parseCSVLine(line){
+  const res=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"')inQ=!inQ;
+    else if(c===','&&!inQ){res.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  res.push(cur.trim());return res;
+}
+function parsePaloAlto(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  if(!lines.length)return{};
+  const hdrs=parseCSVLine(lines[0]).map(h=>h.replace(/^\uFEFF/,'').trim());
+  const idx={};hdrs.forEach((h,i)=>idx[h]=i);
+  const get=(row,key)=>(row[idx[key]]||'').trim();
+  const pols={};const devices=new Set();
+  for(let li=1;li<lines.length;li++){
+    const row=parseCSVLine(lines[li]);
+    if(row.length<10)continue;
+    const action=get(row,'Action').toLowerCase();
+    if(!['allow','accept'].includes(action))continue;
+    const srcip=get(row,'Source address'),dstip=get(row,'Destination address');
+    if(!srcip||!dstip||srcip==='0.0.0.0'||dstip==='0.0.0.0')continue;
+    const protoStr=get(row,'IP Protocol').toLowerCase();
+    const proto=PA_PROTO[protoStr]||0;
+    const port=parseInt(get(row,'Destination Port'))||0;
+    if(!proto)continue;
+    const ruleName=get(row,'Rule')||'Any';
+    const pid=ruleName;
+    const srcZone=get(row,'Source Zone')||get(row,'Inbound Interface')||'any';
+    const dstZone=get(row,'Destination Zone')||get(row,'Outbound Interface')||'any';
+    const devName=get(row,'Device Name')||'';
+    if(devName)devices.add(devName);
+    if(!pols[pid])pols[pid]={id:pid,name:ruleName,flows:[],source:'pa',srcZone,dstZone};
+    const isV6=srcip.includes(':')||dstip.includes(':');
+    const sentbyte=parseInt(get(row,'Bytes Sent'))||0;
+    const rcvdbyte=parseInt(get(row,'Bytes Received'))||0;
+    // PA NAT fields: nattype, natsport/natdport or natsrc/natdst
+    const natType=get(row,'NAT Type')||get(row,'nattype')||'';
+    let paNat=null;
+    if(natType&&natType!=='none'&&natType!=='N/A'){
+      paNat={type:natType};
+      const nSrc=get(row,'NAT Source IP')||get(row,'natsrc')||'';
+      const nSPort=get(row,'NAT Source Port')||get(row,'natsport')||'';
+      const nDst=get(row,'NAT Destination IP')||get(row,'natdst')||'';
+      const nDPort=get(row,'NAT Destination Port')||get(row,'natdport')||'';
+      if(nSrc||nSPort){paNat.snatIp=nSrc;paNat.snatPort=nSPort;paNat.type='snat';}
+      if(nDst||nDPort){paNat.dnatIp=nDst;paNat.dnatPort=nDPort;paNat.type=paNat.snatIp?'snat+dnat':'dnat';}
+    }
+    const srcFace=get(row,'Inbound Interface')||'';
+    const dstFace=get(row,'Outbound Interface')||'';
+    pols[pid].flows.push({
+      srcip,dstip,proto,port,svcKey:`${proto}:${port}`,svc:fmtSvc(proto,port),
+      srcintf:srcZone,dstintf:dstZone,
+      srcface:srcFace,dstface:dstFace,
+      dstcountry:get(row,'Destination Country')||'',
+      sentbyte,rcvdbyte,duration:0,noReturn:sentbyte>0&&rcvdbyte===0,isV6,source:'pa',
+      nat:paNat,
+    });
+  }
+  // Multi-device notice
+  const notice=document.getElementById('pa-multi-dev');
+  if(devices.size>1){
+    notice.textContent=`⚠ Logs from ${devices.size} devices detected: ${[...devices].join(', ')} — imported rules will be compared without device distinction.`;
+    notice.style.display='block';
+  }else{notice.style.display='none';}
+  return pols;
+}
+function parseFile(text,fmt){return fmt==='pa'?parsePaloAlto(text):parseFortinet(text);}
+
+// ================================================================
+// EXISTING RULES PARSER — FortiGate CLI config
+// ================================================================
+function parseFGConfig(text){
+  // Parse all sections from a combined CLI output
+  // Returns {policies, addrObj, addrGrp, addr6Obj, addr6Grp, svcCustom, svcGrp}
+  const db={policies:[],addrObj:{},addrGrp:{},addr6Obj:{},addr6Grp:{},svcCustom:{},svcGrp:{}};
+
+  // Split into sections by "config firewall ..."
+  const sections={};
+  const sectionRe=/^config firewall (\S+)/m;
+  const chunks=text.split(/^(?=config firewall |\bFW-[\w-]+ # show)/m);
+  let currentSection=null;
+  for(const chunk of chunks){
+    const sm=chunk.match(/^config firewall (\S+)/);
+    if(sm)currentSection=sm[1];
+    if(currentSection){
+      if(!sections[currentSection])sections[currentSection]='';
+      sections[currentSection]+=chunk+'\n';
+    }
+  }
+
+  // Parse address objects (IPv4)
+  if(sections['address']){
+    const blocks=sections['address'].split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const subnetM=b.match(/set subnet (\d+\.\d+\.\d+\.\d+)\s+(\d+\.\d+\.\d+\.\d+)/);
+      const rangeStartM=b.match(/set start-ip (\d+\.\d+\.\d+\.\d+)/);
+      const rangeEndM=b.match(/set end-ip (\d+\.\d+\.\d+\.\d+)/);
+      const fqdnM=b.match(/set fqdn "?([^"\n]+)"?/);
+      if(subnetM){
+        const cidr=mask2cidr(subnetM[1],subnetM[2]);
+        db.addrObj[name]=[{type:'cidr',cidr}];
+      } else if(rangeStartM&&rangeEndM){
+        db.addrObj[name]=[{type:'range',start:rangeStartM[1],end:rangeEndM[1]}];
+      } else if(fqdnM){
+        db.addrObj[name]=[{type:'fqdn',fqdn:fqdnM[1].trim()}];
+      } else {
+        db.addrObj[name]=[]; // system object or geography — unresolvable
+      }
+    }
+    db.addrObj['all']=[{type:'cidr',cidr:'0.0.0.0/0'}];
+    db.addrObj['none']=[{type:'cidr',cidr:'0.0.0.0/32'}];
+  }
+
+  // Parse address groups (IPv4)
+  if(sections['addrgrp']){
+    const blocks=sections['addrgrp'].split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const memberM=b.match(/set member (.+)/);
+      if(memberM){
+        const members=memberM[1].trim().split(/\s+/).map(m=>m.replace(/^"|"$/g,''));
+        db.addrGrp[name]=members;
+      }
+    }
+  }
+
+  // Parse address6 objects
+  if(sections['address6']){
+    const blocks=sections['address6'].split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const ip6M=b.match(/set ip6 ([^\n]+)/);
+      const rangeStartM=b.match(/set start-ip ([^\n]+)/);
+      const rangeEndM=b.match(/set end-ip ([^\n]+)/);
+      if(ip6M)db.addr6Obj[name]=[{type:'cidr',cidr:ip6M[1].trim()}];
+      else if(rangeStartM&&rangeEndM)db.addr6Obj[name]=[{type:'range',start:rangeStartM[1].trim(),end:rangeEndM[1].trim()}];
+      else db.addr6Obj[name]=[];
+    }
+    db.addr6Obj['all']=[{type:'cidr',cidr:'::/0'}];
+    db.addr6Obj['none']=[];
+  }
+
+  // Parse address6 groups
+  if(sections['addrgrp6']){
+    const blocks=sections['addrgrp6'].split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const memberM=b.match(/set member (.+)/);
+      if(memberM)db.addr6Grp[name]=memberM[1].trim().split(/\s+/).map(m=>m.replace(/^"|"$/g,''));
+    }
+  }
+
+  // Parse service custom
+  if(sections['service'] && sections['service'].includes('custom')){
+    const svcText=sections['service'];
+    const blocks=svcText.split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const svcs=[];
+      const tcpM=b.match(/set tcp-portrange ([^\n]+)/);
+      const udpM=b.match(/set udp-portrange ([^\n]+)/);
+      if(tcpM)parseFGPortRange(tcpM[1],6,svcs);
+      if(udpM)parseFGPortRange(udpM[1],17,svcs);
+      if(!tcpM&&!udpM){
+        // ICMP or protocol-based
+        const icmpM=b.match(/set protocol ICMP/i);
+        if(icmpM)svcs.push({proto:1,portMin:0,portMax:0});
+      }
+      db.svcCustom[name]=svcs;
+    }
+    // Built-in services
+    db.svcCustom['ALL']=[{proto:6,portMin:0,portMax:65535},{proto:17,portMin:0,portMax:65535},{proto:1,portMin:0,portMax:0}];
+    db.svcCustom['PING']=[{proto:1,portMin:0,portMax:0}];
+    db.svcCustom['PING6']=[{proto:58,portMin:0,portMax:0}];
+  }
+
+  // Parse service groups
+  if(sections['service'] && sections['service'].includes('group')){
+    // May be in 'service group' or 'service\ngroup' section key
+  }
+  // Try 'service group' as a separate key
+  const svcGrpText = Object.entries(sections).find(([k])=>k.startsWith('service'))?.length>0 ?
+    Object.entries(sections).filter(([k])=>k.startsWith('service')).map(([,v])=>v).join('\n') : '';
+  if(svcGrpText.includes('config firewall service group')){
+    const grpSection=svcGrpText.split('config firewall service group')[1]||'';
+    const blocks=grpSection.split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const nameM=b.match(/^"?([^"\n]+)"?/);if(!nameM)continue;
+      const name=nameM[1].trim();
+      const memberM=b.match(/set member ([^\n]+)/);
+      if(memberM)db.svcGrp[name]=memberM[1].trim().split(/\s+/).map(m=>m.replace(/^"|"$/g,''));
+    }
+  }
+
+  // Parse policies
+  if(sections['policy']){
+    const blocks=sections['policy'].split(/^\s+edit\s+/m).slice(1);
+    for(const b of blocks){
+      const idM=b.match(/^(\d+)/);if(!idM)continue;
+      const id=idM[1];
+      const statusM=b.match(/set status disable/);
+      if(statusM)continue; // skip disabled rules
+      const actionM=b.match(/set action (\w+)/);
+      if(actionM&&actionM[1]!=='accept')continue; // skip deny/ipsec
+      const nameM=b.match(/set name "([^"]+)"/);
+      const name=nameM?nameM[1]:`Rule-${id}`;
+      const srcintfM=b.match(/set srcintf "([^"]+)"/);
+      const dstintfM=b.match(/set dstintf "([^"]+)"/);
+      const isV6=b.includes('srcaddr6')||b.includes('dstaddr6');
+      const srcAddrM=b.match(/set srcaddr6?\s+"?([^"\n]+)"?\s*$/m);
+      const dstAddrM=b.match(/set dstaddr6?\s+"?([^"\n]+)"?\s*$/m);
+      const svcM=b.match(/set service\s+(.+)/);
+
+      // Parse multiple quoted values from a line like: set srcaddr "obj1" "obj2"
+      function parseAddrLine(line){
+        const matches=[...line.matchAll(/"([^"]+)"/g)];
+        return matches.map(m=>m[1]);
+      }
+      const srcAddrLine=b.match(/set srcaddr6?\s+((?:"[^"]+"\s*)+)/)?.[1]||'';
+      const dstAddrLine=b.match(/set dstaddr6?\s+((?:"[^"]+"\s*)+)/)?.[1]||'';
+      const svcLine=b.match(/set service\s+((?:"[^"]+"\s*)+)/)?.[1]||'';
+
+      const srcNames=[...srcAddrLine.matchAll(/"([^"]+)"/g)].map(m=>m[1]);
+      const dstNames=[...dstAddrLine.matchAll(/"([^"]+)"/g)].map(m=>m[1]);
+      const svcNames=[...svcLine.matchAll(/"([^"]+)"/g)].map(m=>m[1]);
+
+      if(!srcNames.length||!dstNames.length)continue;
+
+      const resolveAddrNames=(names,isV6)=>{
+        const result=[];
+        const visited=new Set();
+        function resolveOne(name){
+          if(visited.has(name))return;visited.add(name);
+          const grp=isV6?db.addr6Grp[name]:db.addrGrp[name];
+          if(grp){for(const m of grp)resolveOne(m);return;}
+          const obj=isV6?db.addr6Obj[name]:db.addrObj[name];
+          if(obj){result.push(...obj);return;}
+          // Try the other type
+          const obj2=isV6?db.addrObj[name]:db.addr6Obj[name];
+          if(obj2){result.push(...obj2);return;}
+          result.push({type:'unknown',name});
+        }
+        for(const n of names)resolveOne(n);
+        return result;
+      };
+
+      const resolveSvcNames=(names)=>{
+        const result=[];
+        const visited=new Set();
+        function resolveOne(name){
+          if(visited.has(name))return;visited.add(name);
+          const grp=db.svcGrp[name];
+          if(grp){for(const m of grp)resolveOne(m);return;}
+          const svc=db.svcCustom[name];
+          if(svc){result.push(...svc);return;}
+          result.push({proto:0,portMin:0,portMax:65535,name});
+        }
+        for(const n of names)resolveOne(n);
+        return result;
+      };
+
+      const srcs=resolveAddrNames(srcNames,isV6);
+      const dsts=resolveAddrNames(dstNames,isV6);
+      const svcs=resolveSvcNames(svcNames.length?svcNames:['ALL']);
+
+      db.policies.push({
+        id,name,srcs,dsts,svcs,
+        srcintf:srcintfM?srcintfM[1]:'',
+        dstintf:dstintfM?dstintfM[1]:'',
+        isV6,source:'forti',
+        srcNames,dstNames,svcNames,
+      });
+    }
+  }
+
+  return db;
+}
+
+function parseFGPortRange(rangeStr,proto,out){
+  // e.g. "80 443" or "3001-3002" or "80 443 8080"
+  const parts=rangeStr.trim().split(/\s+/);
+  for(const p of parts){
+    const dash=p.indexOf(':');// sometimes "80:443" in fortigate
+    const dash2=p.indexOf('-');
+    if(dash>0){
+      const a=parseInt(p.slice(0,dash)),b=parseInt(p.slice(dash+1));
+      if(!isNaN(a)&&!isNaN(b))out.push({proto,portMin:Math.min(a,b),portMax:Math.max(a,b)});
+    } else if(dash2>0){
+      const a=parseInt(p.slice(0,dash2)),b=parseInt(p.slice(dash2+1));
+      if(!isNaN(a)&&!isNaN(b))out.push({proto,portMin:Math.min(a,b),portMax:Math.max(a,b)});
+    } else {
+      const n=parseInt(p);
+      if(!isNaN(n))out.push({proto,portMin:n,portMax:n});
+    }
+  }
+}
+
+function mask2cidr(ip,mask){
+  // Convert "10.1.0.0 255.255.0.0" to "10.1.0.0/16"
+  const parts=mask.split('.').map(Number);
+  let prefix=0;let done=false;
+  for(const p of parts){
+    if(done){break;}
+    for(let bit=7;bit>=0;bit--){
+      if((p>>bit)&1){prefix++;}else{done=true;break;}
+    }
+  }
+  return`${ip}/${prefix}`;
+}
+
+// ================================================================
+// EXISTING RULES PARSER — Palo Alto CLI
+// ================================================================
+function parsePAConfig(cliText, appDb){
+  // Parse brace-style CLI output
+  // Sections: show rulebase, show address, show address-group, show service, show service-group
+  const db={policies:[],addrObj:{},addrGrp:{},svcObj:{},svcGrp:{}};
+
+  // Simple brace parser — extract top-level named blocks
+  function parseBlockSection(text,sectionMarker){
+    const start=text.indexOf(sectionMarker);
+    if(start<0)return{};
+    const section=text.slice(start);
+    return parseBraceBlocks(section);
+  }
+
+  function parseBraceBlocks(text){
+    // Returns {name: blockText} for immediate children
+    const result={};
+    let i=0;
+    // Find first opening block
+    while(i<text.length&&text[i]!=='{')i++;
+    i++; // skip opening brace
+    let depth=1;
+    while(i<text.length&&depth>0){
+      // Skip whitespace
+      while(i<text.length&&/\s/.test(text[i]))i++;
+      if(text[i]==='}'){depth--;i++;break;}
+      // Read name
+      let name='';
+      if(text[i]==='"'){
+        i++;
+        while(i<text.length&&text[i]!=='"')name+=text[i++];
+        i++; // closing quote
+      } else {
+        while(i<text.length&&!/[\s{;]/.test(text[i]))name+=text[i++];
+      }
+      name=name.trim();
+      // Skip whitespace
+      while(i<text.length&&/[ \t]/.test(text[i]))i++;
+      if(i<text.length&&text[i]==='{'){
+        // Block
+        const blockStart=i;let bd=0;
+        while(i<text.length){
+          if(text[i]==='{')bd++;
+          else if(text[i]==='}'){bd--;if(bd===0){i++;break;}}
+          i++;
+        }
+        result[name]=text.slice(blockStart,i);
+      } else {
+        // Statement ending with ;
+        let val='';
+        while(i<text.length&&text[i]!==';'&&text[i]!=='\n')val+=text[i++];
+        if(text[i]===';')i++;
+        result[name]=val.trim();
+      }
+    }
+    return result;
+  }
+
+  function extractList(blockText){
+    // Extract items from [ item1 item2 ] or single name
+    const listM=blockText.match(/\[\s*([^\]]+)\]/);
+    if(listM)return listM[1].trim().split(/\s+/).map(s=>s.replace(/^"|"$/g,''));
+    const singleM=blockText.match(/^\s*(\S+)\s*;?\s*$/m);
+    if(singleM)return[singleM[1].replace(/^"|"$/g,'')];
+    return[];
+  }
+
+  function extractValue(blockText,key){
+    const re=new RegExp(`\\b${key}\\s+([^;\\n]+)`);
+    const m=blockText.match(re);
+    return m?m[1].trim().replace(/^"|"$/g,''):'';
+  }
+
+  // Parse addresses
+  const addrSection=parseBlockSection(cliText,'show address\naddress {');
+  const addrFallback=cliText.includes('address {')?cliText:'';
+  // Try to find address block
+  const addrMatch=cliText.match(/\baddress\s*\{([^]*?)\n\}\s*\n/);
+  if(addrMatch){
+    const blocks=parseBraceBlocks('{'+addrMatch[1]+'\n}');
+    for(const[name,body]of Object.entries(blocks)){
+      const ipmask=extractValue(body,'ip-netmask');
+      const fqdn=extractValue(body,'fqdn');
+      if(ipmask)db.addrObj[name]=[{type:'cidr',cidr:normalizePA_CIDR(ipmask)}];
+      else if(fqdn)db.addrObj[name]=[{type:'fqdn',fqdn}];
+      else db.addrObj[name]=[];
+    }
+  }
+  db.addrObj['any']=[{type:'cidr',cidr:'0.0.0.0/0'}];
+
+  // Parse address groups
+  const agrpMatch=cliText.match(/\baddress-group\s*\{([^]*?)\n\}\s*\n/);
+  if(agrpMatch){
+    const blocks=parseBraceBlocks('{'+agrpMatch[1]+'\n}');
+    for(const[name,body]of Object.entries(blocks)){
+      const staticM=body.match(/\bstatic\s*\[([^\]]+)\]/);
+      if(staticM)db.addrGrp[name]=staticM[1].trim().split(/\s+/).map(s=>s.replace(/^"|"$/g,''));
+    }
+  }
+
+  // Parse services
+  const svcMatch=cliText.match(/\bservice\s*\{([^]*?)\n\}\s*\n/);
+  if(svcMatch){
+    const blocks=parseBraceBlocks('{'+svcMatch[1]+'\n}');
+    for(const[name,body]of Object.entries(blocks)){
+      const svcs=[];
+      const tcpM=body.match(/\btcp\s*\{[^}]*port\s+(\d+)/);
+      const udpM=body.match(/\budp\s*\{[^}]*port\s+(\d+)/);
+      if(tcpM)svcs.push({proto:6,portMin:parseInt(tcpM[1]),portMax:parseInt(tcpM[1])});
+      if(udpM)svcs.push({proto:17,portMin:parseInt(udpM[1]),portMax:parseInt(udpM[1])});
+      db.svcObj[name]=svcs;
+    }
+  }
+
+  // Parse service groups
+  const svcGrpMatch=cliText.match(/\bservice-group\s*\{([^]*?)\n\}\s*\n/);
+  if(svcGrpMatch){
+    const blocks=parseBraceBlocks('{'+svcGrpMatch[1]+'\n}');
+    for(const[name,body]of Object.entries(blocks)){
+      const memberM=body.match(/\bmembers\s*\[([^\]]+)\]/);
+      if(memberM)db.svcGrp[name]=memberM[1].trim().split(/\s+/).map(s=>s.replace(/^"|"$/g,''));
+    }
+  }
+
+  // Parse rules from rulebase > security > rules
+  const rulesMatch=cliText.match(/\brules\s*\{([^]*?)\n\s*\}/);
+  if(rulesMatch){
+    const blocks=parseBraceBlocks('{'+rulesMatch[1]+'\n}');
+    for(const[rname,body]of Object.entries(blocks)){
+      if(rname==='rules'||rname==='default-security-rules')continue;
+      const disabledM=body.match(/\bdisabled\s+yes/);
+      if(disabledM)continue;
+      const actionM=body.match(/\baction\s+(\w+)/);
+      if(actionM&&actionM[1]!=='allow')continue;
+
+      function getList(field){
+        const re=new RegExp(`\\b${field}\\s*\\[([^\\]]+)\\]|\\b${field}\\s+(\\S+);`);
+        const m=body.match(re);
+        if(!m)return['any'];
+        const raw=m[1]||m[2];
+        return raw.trim().split(/\s+/).map(s=>s.replace(/^"|"$/g,''));
+      }
+
+      const srcNames=getList('source');
+      const dstNames=getList('destination');
+      const appNames=getList('application');
+      const svcNames=getList('service');
+
+      // Resolve addresses
+      function resolveAddr(names){
+        const result=[];const visited=new Set();
+        function r(name){
+          if(visited.has(name))return;visited.add(name);
+          if(name==='any'){result.push({type:'cidr',cidr:'0.0.0.0/0'});return;}
+          const grp=db.addrGrp[name];if(grp){for(const m of grp)r(m);return;}
+          const obj=db.addrObj[name];if(obj){result.push(...obj);return;}
+          result.push({type:'unknown',name});
+        }
+        for(const n of names)r(n);
+        return result;
+      }
+
+      // Resolve services
+      function resolveSvc(svcNms,appNms){
+        const result=[];
+        // Check service field first
+        for(const s of svcNms){
+          if(s==='application-default'||s==='any'){
+            // Fall through to app resolution
+            continue;
+          }
+          const grp=db.svcGrp[s];
+          if(grp){
+            for(const m of grp){
+              const obj=db.svcObj[m];
+              if(obj)result.push(...obj);
+            }
+          } else {
+            const obj=db.svcObj[s];
+            if(obj)result.push(...obj);
+          }
+        }
+        // Resolve applications via app DB
+        if(svcNms.includes('application-default')||!result.length){
+          for(const app of appNms){
+            if(app==='any'){result.push({proto:6,portMin:0,portMax:65535});result.push({proto:17,portMin:0,portMax:65535});continue;}
+            const appInfo=appDb[app];
+            if(appInfo&&appInfo.length){
+              result.push(...appInfo);
+            } else {
+              // Unknown app — flag as indeterminate
+              result.push({proto:0,portMin:0,portMax:0,appName:app,indeterminate:true});
+            }
+          }
+        }
+        return result.length?result:[{proto:6,portMin:0,portMax:65535},{proto:17,portMin:0,portMax:65535}];
+      }
+
+      const srcs=resolveAddr(srcNames);
+      const dsts=resolveAddr(dstNames);
+      const svcs=resolveSvc(svcNames,appNames);
+
+      db.policies.push({
+        id:rname,name:rname,srcs,dsts,svcs,
+        srcintf:'',dstintf:'',isV6:false,source:'pa',
+        srcNames,dstNames,appNames,svcNames,
+      });
+    }
+  }
+
+  return db;
+}
+
+function normalizePA_CIDR(ipmask){
+  if(ipmask.includes('/'))return ipmask;
+  return ipmask+'/32';
+}
+
+// ================================================================
+// PA APPLICATION DB PARSER (CSV)
+// ================================================================
+function parsePAAppCSV(csvText){
+  const lines=csvText.split('\n').filter(l=>l.trim());
+  if(!lines.length)return{};
+  const hdrs=parseCSVLine(lines[0]).map(h=>h.replace(/^\uFEFF/,'').trim());
+  const idx={};hdrs.forEach((h,i)=>idx[h]=i);
+  const db={};
+  for(let i=1;i<lines.length;i++){
+    const row=parseCSVLine(lines[i]);
+    const name=(row[idx['Name']]||'').trim();
+    const ports=(row[idx['Standard Ports']]||'').trim();
+    if(!name||!ports)continue;
+    // ports format: "53,5353,tcp,udp" or "443,tcp" or "80,443,tcp"
+    const parts=ports.split(',').map(s=>s.trim());
+    const protos=[];const portNums=[];
+    for(const p of parts){
+      if(p==='tcp')protos.push(6);
+      else if(p==='udp')protos.push(17);
+      else if(p==='icmp')protos.push(1);
+      else{const n=parseInt(p);if(!isNaN(n)&&n>0)portNums.push(n);}
+    }
+    if(!protos.length||!portNums.length)continue;
+    const entries=[];
+    for(const proto of protos)
+      for(const port of portNums)
+        entries.push({proto,portMin:port,portMax:port});
+    db[name]=entries;
+  }
+  return db;
+}
+
+// ================================================================
+// OVERLAP DETECTION ENGINE
+// ================================================================
+// An "address range" is {ip: int, prefix: int} (CIDR) or {start: int, end: int} (range)
+// A "service" is {proto: int, portMin: int, portMax: int}
+
+function cidr2range(cidrStr){
+  // Returns {start:int, end:int} or null
+  if(!cidrStr||typeof cidrStr!=='string')return null;
+  if(cidrStr==='::/0'||cidrStr.includes(':'))return null; // skip IPv6 for now
+  const parts=cidrStr.split('/');
+  if(parts.length!==2)return null;
+  const n=ip4int(parts[0]);if(n===null)return null;
+  const prefix=parseInt(parts[1]);
+  const mask=prefix===0?0:(0xFFFFFFFF<<(32-prefix))>>>0;
+  const start=(n&mask)>>>0;
+  const end=(start+(Math.pow(2,32-prefix)-1))>>>0;
+  return{start,end};
+}
+
+function addrObjsToRanges(addrObjs){
+  // Convert array of {type,cidr|start|end} to array of {start:int,end:int}
+  const ranges=[];
+  for(const a of addrObjs){
+    if(!a)continue;
+    if(a.type==='cidr'){
+      const r=cidr2range(a.cidr);if(r)ranges.push(r);
+    } else if(a.type==='range'){
+      const s=ip4int(a.start),e=ip4int(a.end);
+      if(s!==null&&e!==null)ranges.push({start:s,end:e});
+    }
+    // fqdn, unknown, geography → skip (will flag as indeterminate)
+  }
+  return ranges;
+}
+
+function rangesOverlap(rangesA,rangesB){
+  for(const a of rangesA)
+    for(const b of rangesB)
+      if(a.start<=b.end&&b.start<=a.end)return true;
+  return false;
+}
+
+function rangesContain(rangesA,rangesB){
+  // Does A fully contain B?
+  for(const b of rangesB){
+    let covered=false;
+    for(const a of rangesA)
+      if(a.start<=b.start&&a.end>=b.end){covered=true;break;}
+    if(!covered)return false;
+  }
+  return true;
+}
+
+function svcsOverlap(svcsA,svcsB){
+  if(!svcsA.length||!svcsB.length)return false;
+  // any proto:0 portMax:65535 = wildcard
+  const anyA=svcsA.some(s=>s.proto===0||s.portMax===65535);
+  const anyB=svcsB.some(s=>s.proto===0||s.portMax===65535);
+  if(anyA||anyB)return true;
+  for(const a of svcsA)
+    for(const b of svcsB)
+      if(a.proto===b.proto&&a.portMin<=b.portMax&&b.portMin<=a.portMax)return true;
+  return false;
+}
+
+function svcsContain(svcsA,svcsB){
+  // Does A fully contain all services in B?
+  const anyA=svcsA.some(s=>s.proto===0||s.portMax===65535);
+  if(anyA)return true;
+  for(const b of svcsB){
+    if(b.indeterminate)return false; // can't tell
+    let covered=false;
+    for(const a of svcsA){
+      if((a.proto===0||a.proto===b.proto)&&a.portMin<=b.portMin&&a.portMax>=b.portMax){covered=true;break;}
+    }
+    if(!covered)return false;
+  }
+  return true;
+}
+
+// Convert a FireAPG tree node to the same format as an existing rule
+function nodeToErRule(node){
+  const srcs=[];
+  for(const cidrStr of node.srcs){
+    const r=cidr2range(cidrStr);
+    if(r)srcs.push({type:'cidr',cidr:cidrStr});
+    else srcs.push({type:'cidr',cidr:'0.0.0.0/0'}); // any
+  }
+  const dsts=[];
+  for(const cidrStr of node.dsts){
+    const r=cidr2range(cidrStr);
+    if(r)dsts.push({type:'cidr',cidr:cidrStr});
+    else dsts.push({type:'cidr',cidr:'0.0.0.0/0'});
+  }
+  const svcs=node.svcs.map(svcName=>{
+    const m=svcName.match(/^(tcp|udp)-(\d+)$/);
+    if(m)return{proto:m[1]==='tcp'?6:17,portMin:parseInt(m[2]),portMax:parseInt(m[2])};
+    if(svcName==='ICMP')return{proto:1,portMin:0,portMax:0};
+    // Try known names
+    for(const[k,v]of Object.entries(SVC_NAMES)){
+      if(v===svcName){const[p,port]=k.split(':');return{proto:parseInt(p),portMin:parseInt(port),portMax:parseInt(port)};}
+    }
+    return{proto:0,portMin:0,portMax:65535}; // unknown = any
+  });
+  return{id:node.id,name:`${node.srcs.join(',')} → ${node.dsts.join(',')}`,srcs,dsts,svcs,source:'proposed'};
+}
+
+function detectOverlaps(proposedNodes, existingRules, excludedIds){
+  const results=[];
+  const filteredExisting=existingRules.filter(r=>!excludedIds.has(r.id));
+
+  for(const node of proposedNodes){
+    const proposed=nodeToErRule(node);
+    const propSrcRanges=addrObjsToRanges(proposed.srcs);
+    const propDstRanges=addrObjsToRanges(proposed.dsts);
+    const propSvcs=proposed.svcs;
+
+    for(const er of filteredExisting){
+      const erSrcRanges=addrObjsToRanges(er.srcs);
+      const erDstRanges=addrObjsToRanges(er.dsts);
+      const erSvcs=er.svcs;
+
+      if(!erSrcRanges.length||!erDstRanges.length)continue; // unresolvable addresses
+      if(!propSrcRanges.length||!propDstRanges.length)continue;
+
+      const srcOvlp=rangesOverlap(propSrcRanges,erSrcRanges);
+      const dstOvlp=rangesOverlap(propDstRanges,erDstRanges);
+      const svcOvlp=svcsOverlap(propSvcs,erSvcs);
+
+      if(!srcOvlp||!dstOvlp||!svcOvlp)continue;
+
+      // Determine type
+      let type,suggestion;
+      const erContainsProp=rangesContain(erSrcRanges,propSrcRanges)&&rangesContain(erDstRanges,propDstRanges)&&svcsContain(erSvcs,propSvcs);
+      const propContainsEr=rangesContain(propSrcRanges,erSrcRanges)&&rangesContain(propDstRanges,erDstRanges)&&svcsContain(propSvcs,erSvcs);
+
+      if(erContainsProp&&propContainsEr){
+        type='full';suggestion='Rules are identical in scope. The existing rule already covers this traffic. Consider removing the proposed rule or verifying intent.';
+      } else if(erContainsProp){
+        type='full';suggestion=`Existing rule "${er.name}" (${er.source}) fully covers the proposed rule. The proposed rule is redundant.`;
+      } else if(propContainsEr){
+        type='full';suggestion=`Proposed rule is broader than existing rule "${er.name}". Review if the proposed scope is intentional.`;
+      } else {
+        type='partial';suggestion=`Partial overlap between proposed rule and existing rule "${er.name}" (${er.source}). Check that traffic intent is not ambiguous.`;
+      }
+
+      // Check for shadow rule (existing is broader and comes first → shadow)
+      if(erContainsProp&&!propContainsEr){
+        type='shadow';suggestion=`Existing rule "${er.name}" (${er.source}) shadows this proposed rule. The proposed traffic will be matched by the existing rule first. If the existing rule is more permissive, the proposed rule will never be reached.`;
+      }
+
+      results.push({proposedNode:node,existingRule:er,type,suggestion});
+    }
+  }
+
+  // Also check proposed-vs-proposed overlaps
+  for(let i=0;i<proposedNodes.length;i++){
+    for(let j=i+1;j<proposedNodes.length;j++){
+      const a=nodeToErRule(proposedNodes[i]);
+      const b=nodeToErRule(proposedNodes[j]);
+      const aS=addrObjsToRanges(a.srcs),aD=addrObjsToRanges(a.dsts);
+      const bS=addrObjsToRanges(b.srcs),bD=addrObjsToRanges(b.dsts);
+      if(!aS.length||!aD.length||!bS.length||!bD.length)continue;
+      if(rangesOverlap(aS,bS)&&rangesOverlap(aD,bD)&&svcsOverlap(a.svcs,b.svcs)){
+        results.push({
+          proposedNode:proposedNodes[i],proposedNodeB:proposedNodes[j],
+          type:'partial',
+          suggestion:`Two proposed rules overlap with each other. Review if they can be consolidated.`,
+          selfOverlap:true,
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
+// ================================================================
+// IPv4/IPv6 UTILITIES
+// ================================================================
+function ip4int(ip){
+  if(!ip||ip.includes(':'))return null;
+  const p=ip.split('.').map(Number);
+  if(p.length!==4||p.some(x=>isNaN(x)||x<0||x>255))return null;
+  return((p[0]<<24)>>>0)+((p[1]<<16)>>>0)+((p[2]<<8)>>>0)+p[3];
+}
+function int2ip4(n){return[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+function cidr4(ip,prefix){
+  const n=ip4int(ip);if(n===null)return`${ip}/${prefix}`;
+  const m=prefix===0?0:(0xFFFFFFFF<<(32-prefix))>>>0;
+  return`${int2ip4((n&m)>>>0)}/${prefix}`;
+}
+function isPrivate4(ip){const n=ip4int(ip);if(n===null)return false;return PRIVATE_RANGES.some(r=>n>=r.s&&n<=r.e);}
+
+const MIN_DENSITY_PRIVATE=0.005,MIN_DENSITY_PUBLIC=0.02,MAX_GAP_RATIO=0.50,MAX_PREFIX_PUBLIC=20,MAX_PREFIX_PRIVATE=8;
+function minCidr4(ips){
+  const ints=ips.map(ip4int).filter(n=>n!==null);
+  if(!ints.length)return null;
+  if(ints.length===1){const ip=ips.find(i=>ip4int(i)===ints[0]);return{cidr:cidr4(ip,32),prefix:32};}
+  let diff=0;for(let i=1;i<ints.length;i++)diff|=(ints[0]^ints[i]);
+  let prefix=32;let d=diff>>>0;while(d>0){d>>>=1;prefix--;}
+  const priv=isPrivate4(ips[0]);
+  prefix=Math.max(priv?MAX_PREFIX_PRIVATE:MAX_PREFIX_PUBLIC,Math.min(32,prefix));
+  const cidrSize=Math.pow(2,32-prefix);
+  const density=ints.length/cidrSize;
+  const minDens=priv?MIN_DENSITY_PRIVATE:MIN_DENSITY_PUBLIC;
+  const sorted=[...ints].sort((a,b)=>a-b);
+  let maxGap=0;for(let i=1;i<sorted.length;i++)maxGap=Math.max(maxGap,sorted[i]-sorted[i-1]);
+  const gapRatio=maxGap/cidrSize;
+  if(density<minDens&&gapRatio>MAX_GAP_RATIO)return null;
+  if(density<minDens&&gapRatio>MAX_GAP_RATIO*0.6&&prefix<16&&!priv)return null;
+  const mask=prefix===0?0:(0xFFFFFFFF<<(32-prefix))>>>0;
+  return{cidr:`${int2ip4((ints[0]&mask)>>>0)}/${prefix}`,prefix};
+}
+
+function expandIp6(ip){
+  if(!ip||!ip.includes(':'))return null;ip=ip.split('%')[0];
+  const sides=ip.split('::');
+  if(sides.length===2){const L=sides[0]?sides[0].split(':'):[];const R=sides[1]?sides[1].split(':'):[];const fill=Array(8-L.length-R.length).fill('0000');return[...L,...fill,...R].join(':');}
+  return ip.split(':').map(h=>h.padStart(4,'0')).join(':');
+}
+function ip6words(ip){const e=expandIp6(ip);if(!e)return null;return e.split(':').map(h=>parseInt(h,16));}
+function cidr6(ip,prefix){
+  const w=ip6words(ip);if(!w)return`${ip}/${prefix}`;
+  const r=[];let rem=prefix;
+  for(let i=0;i<8;i++){if(rem>=16){r.push(w[i].toString(16).padStart(4,'0'));rem-=16;}else if(rem>0){const m=(0xFFFF<<(16-rem))&0xFFFF;r.push((w[i]&m).toString(16).padStart(4,'0'));rem=0;}else r.push('0000');}
+  let s=r.join(':');const parts=s.split(':');let best=-1,bestLen=0,cur=-1,curLen=0;
+  for(let i=0;i<parts.length;i++){if(parts[i]==='0000'){if(cur<0)cur=i;curLen++;if(curLen>bestLen){best=cur;bestLen=curLen;}}else{cur=-1;curLen=0;}}
+  if(bestLen>=2){const arr=[...parts];arr.splice(best,bestLen,'');s=arr.join(':').replace(/^:/,'::').replace(/:$/,'::').replace(/::+/,'::');}
+  else s=parts.join(':');
+  return`${s}/${prefix}`;
+}
+function minCidr6(ips){
+  const wl=ips.map(ip6words).filter(w=>w!==null);if(!wl.length)return null;
+  if(wl.length===1)return{cidr:cidr6(ips[0],128),prefix:128};
+  let prefix=128;
+  outer:for(let bit=0;bit<128;bit++){const wi=Math.floor(bit/16),bi=15-(bit%16),ref=(wl[0][wi]>>bi)&1;for(let i=1;i<wl.length;i++)if(((wl[i][wi]>>bi)&1)!==ref){prefix=bit;break outer;}}
+  prefix=Math.max(32,Math.min(128,prefix));return{cidr:cidr6(ips[0],prefix),prefix};
+}
+
+// ================================================================
+// PERMISSIVENESS — CIDR×70% + SVC×30%
+// ================================================================
+function prefPerm4(p){if(p>=32)return 0;if(p>=30)return 8;if(p>=28)return 14;if(p>=26)return 20;if(p>=24)return 27;if(p>=22)return 36;if(p>=20)return 45;if(p>=18)return 55;if(p>=16)return 65;if(p>=12)return 80;return 95;}
+function prefPerm6(p){if(p>=128)return 0;if(p>=120)return 8;if(p>=112)return 14;if(p>=96)return 25;if(p>=80)return 35;if(p>=64)return 45;if(p>=56)return 58;if(p>=48)return 68;if(p>=32)return 80;return 95;}
+function cidrPerm(cidr,isV6){if(!cidr||!cidr.includes('/'))return 0;const p=parseInt(cidr.split('/')[1]);return isV6?prefPerm6(p):prefPerm4(p);}
+function svcPerm(svcs){
+  if(!svcs||!svcs.length)return 0;
+  const cnt=svcs.length;
+  let base=cnt===1?0:cnt<=2?10:cnt<=4?22:cnt<=7?35:cnt<=12?50:cnt<=20?65:80;
+  // Protocol wildcard boost only
+  let boost=0;
+  for(const s of svcs){const p=parseInt(s.split(':')[0]);if(p&&p!==6&&p!==17&&p!==1&&p!==58)boost=Math.max(boost,15);}
+  return Math.min(100,base+boost);
+}
+function nodePerm(srcs,dsts,isV6,svcs){
+  const sp=S.fixSrc?0:Math.max(...srcs.map(s=>cidrPerm(s,isV6)));
+  const dp=S.fixDst?0:Math.max(...dsts.map(d=>cidrPerm(d,isV6)));
+  const cidrScore=Math.max(sp,dp);
+  const svcScore=svcs?svcPerm(svcs):0;
+  return Math.min(100,Math.round(cidrScore*0.70+svcScore*0.30));
+}
+function pcolor(s){if(s<=10)return'var(--gr)';if(s<=35)return'var(--ac)';if(s<=65)return'var(--or)';return'var(--rd)';}
+
+// ================================================================
+// BEHAVIORAL CLUSTERING
+// ================================================================
+const BEHAV_THRESHOLD=0.60;
+function buildBehavioralSignatures(flows){
+  const sigs=new Map();
+  for(const f of flows){
+    if(!sigs.has(f.srcip))sigs.set(f.srcip,new Set());
+    sigs.get(f.srcip).add(`${f.dstip}:${f.svcKey}`);
+  }
+  return sigs;
+}
+function jaccardSimilarity(setA,setB){
+  if(!setA.size&&!setB.size)return 1;
+  let inter=0;for(const x of setA)if(setB.has(x))inter++;
+  return inter/(setA.size+setB.size-inter);
+}
+function clusterIPsBehavioral(ips,flows,isV6){
+  if(ips.length<=1)return[{ips,cidr:isV6?cidr6(ips[0],128):cidr4(ips[0],32)}];
+  const sigs=buildBehavioralSignatures(flows);
+  const clusters=ips.map(ip=>({ips:[ip],sig:sigs.get(ip)||new Set()}));
+  let merged=true;
+  while(merged){
+    merged=false;
+    outer:for(let i=0;i<clusters.length;i++){
+      for(let j=i+1;j<clusters.length;j++){
+        if(jaccardSimilarity(clusters[i].sig,clusters[j].sig)>=BEHAV_THRESHOLD){
+          clusters[i].ips=[...clusters[i].ips,...clusters[j].ips];
+          clusters[j].sig.forEach(x=>clusters[i].sig.add(x));
+          clusters.splice(j,1);merged=true;break outer;
+        }
+      }
+    }
+  }
+  return clusters.map(cl=>{
+    const res=isV6?minCidr6(cl.ips):minCidr4(cl.ips);
+    return{ips:cl.ips,cidr:res?res.cidr:null};
+  });
+}
+function clusterIPsGeo(ips,isV6){
+  if(ips.length<=1)return[{cidr:isV6?cidr6(ips[0],128):cidr4(ips[0],32),ips}];
+  const top=isV6?minCidr6(ips):minCidr4(ips);
+  if(!top){
+    const maxPrefix=isV6?128:32;
+    for(let p=(isV6?96:20);p<maxPrefix;p++){
+      const grouped={};
+      for(const ip of ips){const net=isV6?cidr6(ip,p):cidr4(ip,p);if(!grouped[net])grouped[net]=[];grouped[net].push(ip);}
+      if(Object.keys(grouped).length>1&&Object.keys(grouped).length<ips.length)
+        return Object.entries(grouped).map(([,gips])=>{const r=isV6?minCidr6(gips):minCidr4(gips);return{cidr:r?r.cidr:(isV6?cidr6(gips[0],128):cidr4(gips[0],32)),ips:gips};});
+    }
+    return ips.map(ip=>({cidr:isV6?cidr6(ip,128):cidr4(ip,32),ips:[ip]}));
+  }
+  if(ips.length<=3)return[{cidr:top.cidr,ips}];
+  const maxPrefix=isV6?128:32;
+  for(let p=top.prefix+1;p<maxPrefix;p++){
+    const grouped={};
+    for(const ip of ips){const net=isV6?cidr6(ip,p):cidr4(ip,p);if(!grouped[net])grouped[net]=[];grouped[net].push(ip);}
+    if(Object.keys(grouped).length>1)
+      return Object.entries(grouped).map(([,gips])=>{const r=isV6?minCidr6(gips):minCidr4(gips);return{cidr:r?r.cidr:(isV6?cidr6(gips[0],128):cidr4(gips[0],32)),ips:gips};});
+  }
+  return[{cidr:top.cidr,ips}];
+}
+function clusterIPs(ips,isV6,flows){
+  if(!isV6&&S.anchorMode==='auto'&&ips.length>=2&&flows)return clusterIPsBehavioral(ips,flows,isV6);
+  return clusterIPsGeo(ips,isV6);
+}
+
+// ================================================================
+// DEDUP / ACTIVE FLOWS
+// ================================================================
+function dedup(flows){
+  const seen=new Set();
+  return flows.filter(f=>{const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;if(seen.has(k))return false;seen.add(k);return true;});
+}
+function activeFlows(){
+  let fl=S.flows;
+  if(S.nrMode==='tcp')fl=fl.filter(f=>nrCategory(f)!=='tcp');
+  else if(S.nrMode==='tcp-udp-sus')fl=fl.filter(f=>{const c=nrCategory(f);return c!=='tcp'&&c!=='udp-sus';});
+  return fl;
+}
+
+// ================================================================
+// APG ENGINE
+// ================================================================
+function buildTree(flows){
+  const v4=dedup(flows.filter(f=>!f.isV6));
+  const v6=dedup(flows.filter(f=>f.isV6));
+  const roots=[];
+  processIntfGroup(v4,false,roots);
+  processIntfGroup(v6,true,roots);
+  roots.sort((a,b)=>b.hits-a.hits);
+  return roots;
+}
+function makeNode(id,srcs,dsts,svcs,srcintf,dstintf,flows,isV6,children){
+  const perm=nodePerm(srcs,dsts,isV6,svcs);
+  const noReturn=flows.some(f=>f.noReturn);
+  return{id,srcs,dsts,svcs,srcintf,dstintf,flows,hits:flows.length,perm,children,isV6,expanded:false,active:true,manualOverride:false,selected:false,noReturn};
+}
+function processIntfGroup(uniq,isV6,roots){
+  if(!uniq.length)return;
+  const byIntf={};
+  for(const f of uniq){const k=`${f.srcintf}|||${f.dstintf}`;if(!byIntf[k])byIntf[k]={srcintf:f.srcintf,dstintf:f.dstintf,flows:[]};byIntf[k].flows.push(f);}
+  let gi=0;for(const grp of Object.values(byIntf))buildHierarchy(grp.flows,grp.srcintf,grp.dstintf,isV6,`G${gi++}`,roots);
+}
+function buildHierarchy(flows,srcintf,dstintf,isV6,gid,out){
+  if(!flows.length)return;
+  const srcIps=[...new Set(flows.map(f=>f.srcip))];
+  const dstIps=[...new Set(flows.map(f=>f.dstip))];
+  const anchor=S.anchorMode;
+  const topSrcs=anchor==='src'?srcIps.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32)):(()=>{const r=isV6?minCidr6(srcIps):minCidr4(srcIps);return r?[r.cidr]:srcIps.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));})();
+  const topDsts=anchor==='dst'?dstIps.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32)):(()=>{const r=isV6?minCidr6(dstIps):minCidr4(dstIps);return r?[r.cidr]:dstIps.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));})();
+  const byPair={};
+  for(const f of flows){const k=`${f.srcip}|||${f.dstip}`;if(!byPair[k])byPair[k]={src:f.srcip,dst:f.dstip,flows:[]};byPair[k].flows.push(f);}
+  const leaves=Object.entries(byPair).map(([,p])=>{
+    const svcs=uniqSvcs(p.flows);
+    const s=isV6?cidr6(p.src,128):cidr4(p.src,32);
+    const d=isV6?cidr6(p.dst,128):cidr4(p.dst,32);
+    return makeNode(`lf_${p.src}_${p.dst}_${gid}`,[s],[d],svcs,srcintf,dstintf,p.flows,isV6,[]);
+  });
+  if(leaves.length===1){out.push(leaves[0]);return;}
+  const midNodes=buildSrcClusters(leaves,flows,srcIps,dstIps,srcintf,dstintf,isV6,gid);
+  const svcs=uniqSvcs(flows);
+  const root=makeNode(`rt_${gid}`,topSrcs,topDsts,svcs,srcintf,dstintf,flows,isV6,midNodes.length>0?midNodes:leaves);
+  pruneRedundant(root);
+  out.push(root);
+}
+function buildSrcClusters(leaves,flows,allSrcIps,allDstIps,srcintf,dstintf,isV6,gid){
+  const fixSrc=S.fixSrc, fixDst=S.fixDst;
+
+  // Helper: get src CIDRs for a list of IPs respecting fixSrc
+  function srcCidrsFor(ips){
+    if(fixSrc)return ips.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));
+    if(ips.length===1)return[isV6?cidr6(ips[0],128):cidr4(ips[0],32)];
+    const r=isV6?minCidr6(ips):minCidr4(ips);
+    return r?[r.cidr]:ips.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));
+  }
+
+  // fixSrc mode — one node per source IP
+  if(fixSrc){
+    return allSrcIps.map((srcIp,si)=>{
+      const subFlows=flows.filter(f=>f.srcip===srcIp);if(!subFlows.length)return null;
+      const subDstIps=[...new Set(subFlows.map(f=>f.dstip))];
+      const subLeaves=leaves.filter(l=>l.srcs[0].split('/')[0]===srcIp);
+      const svcs=uniqSvcs(subFlows);
+      const srcCidr=isV6?cidr6(srcIp,128):cidr4(srcIp,32);
+      const dstGroups=buildSmartDstGroups(subLeaves,subFlows,subDstIps,isV6);
+      if(dstGroups.length===1)return makeNode(`sc_${si}_${gid}`,[srcCidr],dstGroups[0].dsts,svcs,srcintf,dstintf,subFlows,isV6,subLeaves.length>1?subLeaves:[]);
+      const dstNodes=dstGroups.map((dg,di)=>{
+        const dgFlows=subFlows.filter(f=>dg.ips.includes(f.dstip));
+        const dgLeaves=subLeaves.filter(l=>dg.ips.includes(l.dsts[0].split('/')[0]));
+        return makeNode(`sd_${si}_${di}_${gid}`,[srcCidr],dg.dsts,uniqSvcs(dgFlows),srcintf,dstintf,dgFlows,isV6,dgLeaves.length>1?dgLeaves:[]);
+      });
+      return makeNode(`sc_${si}_${gid}`,[srcCidr],[...new Set(dstGroups.flatMap(dg=>dg.dsts))],svcs,srcintf,dstintf,subFlows,isV6,dstNodes);
+    }).filter(Boolean);
+  }
+
+  // fixDst mode — one node per destination IP
+  if(fixDst){
+    return allDstIps.map((dstIp,di)=>{
+      const subFlows=flows.filter(f=>f.dstip===dstIp);if(!subFlows.length)return null;
+      const subSrcIps=[...new Set(subFlows.map(f=>f.srcip))];
+      const subLeaves=leaves.filter(l=>l.dsts[0].split('/')[0]===dstIp);
+      const svcs=uniqSvcs(subFlows);
+      const dstCidr=isV6?cidr6(dstIp,128):cidr4(dstIp,32);
+      const srcClusters=clusterIPs(subSrcIps,isV6);
+      const srcCidrs=srcClusters.flatMap(sc=>srcCidrsFor(sc.ips));
+      if(srcClusters.length===1)return makeNode(`dc_${di}_${gid}`,srcCidrs,[dstCidr],svcs,srcintf,dstintf,subFlows,isV6,subLeaves.length>1?subLeaves:[]);
+      const srcNodes=srcClusters.map((sc,si)=>{
+        const scFlows=subFlows.filter(f=>sc.ips.includes(f.srcip));
+        const scLeaves=subLeaves.filter(l=>sc.ips.includes(l.srcs[0].split('/')[0]));
+        return makeNode(`ds_${di}_${si}_${gid}`,srcCidrsFor(sc.ips),[dstCidr],uniqSvcs(scFlows),srcintf,dstintf,scFlows,isV6,scLeaves.length>1?scLeaves:[]);
+      });
+      return makeNode(`dc_${di}_${gid}`,srcCidrs,[dstCidr],svcs,srcintf,dstintf,subFlows,isV6,srcNodes);
+    }).filter(Boolean);
+  }
+
+  // AUTO — behavioral clustering on both sides
+  const srcClusters=clusterIPs(allSrcIps,isV6,flows);
+  return srcClusters.map((sc,si)=>{
+    const subFlows=flows.filter(f=>sc.ips.includes(f.srcip));if(!subFlows.length)return null;
+    const subDstIps=[...new Set(subFlows.map(f=>f.dstip))];
+    const subLeaves=leaves.filter(l=>sc.ips.includes(l.srcs[0].split('/')[0]));
+    const svcs=uniqSvcs(subFlows);
+    const dstGroups=buildSmartDstGroups(subLeaves,subFlows,subDstIps,isV6);
+    const srcCidrs=sc.cidr?[sc.cidr]:sc.ips.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));
+    if(dstGroups.length===1)return makeNode(`sc_${si}_${gid}`,srcCidrs,dstGroups[0].dsts,svcs,srcintf,dstintf,subFlows,isV6,subLeaves.length>1?subLeaves:[]);
+    const dstNodes=dstGroups.map((dg,di)=>{
+      const dgFlows=subFlows.filter(f=>dg.ips.includes(f.dstip));
+      const dgLeaves=subLeaves.filter(l=>dg.ips.includes(l.dsts[0].split('/')[0]));
+      return makeNode(`sd_${si}_${di}_${gid}`,srcCidrs,dg.dsts,uniqSvcs(dgFlows),srcintf,dstintf,dgFlows,isV6,dgLeaves.length>1?dgLeaves:[]);
+    });
+    return makeNode(`sc_${si}_${gid}`,srcCidrs,[...new Set(dstGroups.flatMap(dg=>dg.dsts))],svcs,srcintf,dstintf,subFlows,isV6,dstNodes);
+  }).filter(Boolean);
+}
+function buildSmartDstGroups(leaves,flows,dstIps,isV6){
+  if(S.fixDst)return dstIps.map(ip=>({dsts:[isV6?cidr6(ip,128):cidr4(ip,32)],ips:[ip]}));
+  if(dstIps.length===1){const d=isV6?cidr6(dstIps[0],128):cidr4(dstIps[0],32);return[{dsts:[d],ips:dstIps}];}
+  const res=isV6?minCidr6(dstIps):minCidr4(dstIps);
+  if(res)return[{dsts:[res.cidr],ips:dstIps}];
+  const bySvc={};
+  for(const l of leaves){const k=l.svcs.join('|');if(!bySvc[k])bySvc[k]={leaves:[]};bySvc[k].leaves.push(l);}
+  const groups=[];
+  for(const sg of Object.values(bySvc)){
+    const ips=sg.leaves.map(l=>l.dsts[0].split('/')[0]);
+    const sRes=isV6?minCidr6(ips):minCidr4(ips);
+    if(sRes&&ips.length>1)groups.push({dsts:[sRes.cidr],ips});
+    else{const dsts=ips.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32));groups.push({dsts,ips});}
+  }
+  return groups.length>0?groups:[{dsts:dstIps.map(ip=>isV6?cidr6(ip,128):cidr4(ip,32)),ips:dstIps}];
+}
+function uniqSvcs(flows){return[...new Set(flows.map(f=>f.svcKey))].sort();}
+function pruneRedundant(node){
+  node.children.forEach(pruneRedundant);
+  while(node.children.length===1){const c=node.children[0];if(JSON.stringify(c.srcs)===JSON.stringify(node.srcs)&&JSON.stringify(c.dsts)===JSON.stringify(node.dsts)){node.children=c.children;}else break;}
+}
+
+// ================================================================
+// CURVE + PERM APPLY
+// ================================================================
+function computeCurve(tree){
+  const pts=[];for(let p=0;p<=100;p+=2)pts.push({perm:p,rules:countAt(tree,p)});
+  const nat=[];
+  for(let i=2;i<pts.length-2;i++){const b=pts[i-1].rules-pts[i].rules,a=pts[i].rules-pts[i+1].rules;if(b>=1&&a<=b*0.35&&pts[i].rules>0)nat.push(pts[i]);}
+  nat.push(pts[0],pts[pts.length-1]);
+  const seen=new Set();return{pts,nat:nat.filter(p=>{if(seen.has(p.perm))return false;seen.add(p.perm);return true;}).sort((a,b)=>a.perm-b.perm)};
+}
+function countAt(tree,th){if(!tree)return 0;let c=0;function w(ns){for(const n of ns){if(n.perm<=th||!n.children.length)c++;else w(n.children);}}w(tree);return c;}
+function applyPerm(tree,pl){
+  if(!tree)return;
+  function w(ns){for(const n of ns){if(n.manualOverride)continue;if(n.perm<=pl||!n.children.length){n.expanded=false;n.active=true;ck(n.children);}else{n.expanded=true;n.active=false;w(n.children);}}}
+  function ck(ns){for(const n of ns){if(!n.manualOverride){n.expanded=false;n.active=false;}ck(n.children);}}
+  w(tree);
+}
+function countActive(tree){if(!tree)return 0;let c=0;function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)c++;}}w(tree);return c;}
+function avgPermActive(tree){if(!tree)return 0;const p=[];function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)p.push(n.perm);}}w(tree);return p.length?Math.round(p.reduce((a,b)=>a+b,0)/p.length):0;}
+function getSelected(tree){if(!tree)return[];const r=[];function w(ns){for(const n of ns){if(n.active&&!n.expanded&&n.selected)r.push(n);if(n.expanded)w(n.children);}}w(tree);return r;}
+function getAllActive(tree){if(!tree)return[];const r=[];function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)r.push(n);}}w(tree);return r;}
+// Export-aware: excludes treated nodes unless toggle is on
+function getExportNodes(tree,includeTreated){
+  const all=getAllActive(tree);
+  if(includeTreated)return all;
+  return all.filter(n=>!S.treated.has(nodeSig(n)));
+}
+function countSel(tree){return getSelected(tree).length;}
+function toggleNode(tree,id){
+  if(!tree)return;
+  function dc(ns){for(const n of ns){n.expanded=false;n.active=false;n.manualOverride=false;dc(n.children);}}
+  function w(ns){for(const n of ns){if(n.id===id){if(!n.children.length)return true;n.expanded=!n.expanded;n.manualOverride=true;if(n.expanded){n.active=false;for(const c of n.children){c.active=true;c.expanded=false;c.manualOverride=false;dc(c.children);}}else{n.active=true;dc(n.children);}return true;}if(w(n.children))return true;}return false;}
+  w(tree);
+}
+function setSel(tree,id,v){if(!tree)return;function w(ns){for(const n of ns){if(n.id===id){n.selected=v;return true;}if(w(n.children))return true;}return false;}w(tree);}
+function resetOvr(tree){if(!tree)return;function w(ns){for(const n of ns){n.manualOverride=false;w(n.children);}}w(tree);}
+
+// ================================================================
+// AUTO-OPTIMIZE
+// ================================================================
+function autoOptimize(){
+  if(!S.tree)return;
+  const pts=S.curve.pts;if(!pts.length)return;
+  const maxRules=countAt(S.tree,0);
+  // Score function: minimize perm*0.5 + normalized_rules*0.3 + avg_svc_risk*0.2
+  let bestScore=Infinity,bestPerm=80;
+  for(const pt of pts){
+    if(!pt.rules)continue;
+    const normRules=pt.rules/maxRules;
+    // Compute avg svc perm at this threshold
+    applyPerm(S.tree,pt.perm);
+    const active=getAllActive(S.tree);
+    const avgSvc=active.length?active.reduce((a,n)=>a+svcPerm(n.svcs),0)/active.length:0;
+    const score=(pt.perm/100)*0.5+normRules*0.3+(avgSvc/100)*0.2;
+    if(score<bestScore){bestScore=score;bestPerm=pt.perm;}
+  }
+  S.optimalPerm=bestPerm;
+  setPerm(bestPerm);
+  setStatus(`⚡ Auto-optimized → perm ${bestPerm}/100 · ${countActive(S.tree)} rules`,true);
+  updateUI();
+}
+
+// ================================================================
+// GRAPH
+// ================================================================
+function renderGraph(curve,perm){
+  const svg=d3.select('#bsvg');svg.selectAll('*').remove();
+  const W=document.getElementById('bsvg').clientWidth;
+  const H=136,mg={top:6,right:12,bottom:26,left:40};
+  const w=W-mg.left-mg.right,h=H-mg.top-mg.bottom;
+  const{pts,nat}=curve;if(!pts.length)return;
+  const maxR=Math.max(...pts.map(p=>p.rules));
+  const xS=d3.scaleLinear().domain([0,maxR*1.08]).range([0,w]);
+  const yS=d3.scaleLinear().domain([0,100]).range([h,0]);
+  const g=svg.append('g').attr('transform',`translate(${mg.left},${mg.top})`);
+  g.append('g').call(d3.axisLeft(yS).ticks(4).tickSize(-w).tickFormat('')).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('line').attr('stroke','var(--b1)').attr('stroke-dasharray','3'));
+  g.append('g').call(d3.axisBottom(xS).ticks(5).tickSize(-h).tickFormat('')).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('line').attr('stroke','var(--b1)').attr('stroke-dasharray','3').attr('y1',h).attr('y2',0));
+  g.append('path').datum(pts).attr('fill','var(--acl)').attr('d',d3.area().x(d=>xS(d.rules)).y0(h).y1(d=>yS(d.perm)).curve(d3.curveCatmullRom));
+  g.append('path').datum(pts).attr('fill','none').attr('stroke','var(--ac)').attr('stroke-width',2.5).attr('d',d3.line().x(d=>xS(d.rules)).y(d=>yS(d.perm)).curve(d3.curveCatmullRom));
+  g.selectAll('.np').data(nat).join('circle').attr('cx',d=>xS(d.rules)).attr('cy',d=>yS(d.perm)).attr('r',5).attr('fill','var(--ac2)').attr('stroke','var(--bg)').attr('stroke-width',2).style('cursor','pointer').on('mouseenter',(ev,d)=>showTip(ev,`<strong>Natural point</strong><br>${d.rules} rules · Perm ${d.perm}/100`)).on('mouseleave',hideTip).on('click',(ev,d)=>setPerm(d.perm));
+  // Optimal point
+  if(S.optimalPerm!==null&&S.tree){
+    const optR=countAt(S.tree,S.optimalPerm);
+    g.append('circle').attr('cx',xS(optR)).attr('cy',yS(S.optimalPerm)).attr('r',6).attr('fill','var(--gr)').attr('stroke','var(--bg)').attr('stroke-width',2).on('mouseenter',ev=>showTip(ev,`<strong>⚡ Auto-Optimize point</strong><br>${optR} rules · Perm ${S.optimalPerm}/100`)).on('mouseleave',hideTip);
+  }
+  const curR=S.tree?countAt(S.tree,perm):0;
+  g.append('line').attr('x1',xS(curR)).attr('x2',xS(curR)).attr('y1',0).attr('y2',h).attr('stroke','var(--yw)').attr('stroke-width',1.5).attr('stroke-dasharray','4,3');
+  g.append('line').attr('x1',0).attr('x2',w).attr('y1',yS(perm)).attr('y2',yS(perm)).attr('stroke','var(--yw)').attr('stroke-width',1.5).attr('stroke-dasharray','4,3');
+  g.append('circle').attr('cx',xS(curR)).attr('cy',yS(perm)).attr('r',5).attr('fill','var(--yw)').attr('stroke','var(--bg)').attr('stroke-width',2);
+  g.append('g').attr('transform',`translate(0,${h})`).call(d3.axisBottom(xS).ticks(5)).call(g=>g.select('.domain').attr('stroke','var(--b2)')).call(g=>g.selectAll('text').attr('fill','var(--t3)').attr('font-size','9').attr('font-family','JetBrains Mono'));
+  g.append('g').call(d3.axisLeft(yS).ticks(4)).call(g=>g.select('.domain').attr('stroke','var(--b2)')).call(g=>g.selectAll('text').attr('fill','var(--t3)').attr('font-size','9').attr('font-family','JetBrains Mono'));
+  g.append('text').attr('x',w/2).attr('y',h+22).attr('fill','var(--t3)').attr('font-size','9').attr('text-anchor','middle').attr('font-family','JetBrains Mono').text('← Fewer rules (broad)   Rules count   More rules (precise) →');
+  svg.on('click',function(ev){const[,my]=d3.pointer(ev);const p=Math.round(yS.invert(my-mg.top));if(p>=0&&p<=100)setPerm(p);});
+}
+
+// ================================================================
+// TREE RENDERING
+// ================================================================
+function getNRDsts(){
+  // Returns Map: dstip → worst NR category ('tcp'|'udp-sus'|'udp-ok')
+  const m=new Map();
+  for(const f of S.flows){
+    const c=nrCategory(f);
+    if(!c)continue;
+    const prev=m.get(f.dstip);
+    if(!prev||c==='tcp'||(c==='udp-sus'&&prev==='udp-ok'))m.set(f.dstip,c);
+  }
+  return m;
+}
+
+function renderTree(){
+  const c=document.getElementById('tree-c');
+  if(!S.tree?.length){
+    c.innerHTML='<div class="es"><div class="es-icon">🌲</div><div class="es-title">No data</div><div class="es-sub">Select a policy to analyze.</div></div>';
+    return;
+  }
+  applyPerm(S.tree,S.perm);
+  const nrCats=getNRDsts();
+  const nrDsts=new Set(nrCats.keys());
+  c.innerHTML=S.tree.map(n=>rnode(n,0,nrDsts,nrCats)).join('');
+  c.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleNode(S.tree,b.dataset.t);renderTree();updateUI();}));
+  c.querySelectorAll('[data-ck]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setSel(S.tree,b.dataset.ck,b.classList.contains('ck')?false:true);renderTree();updateUI();}));
+  // NR tooltip — all 3 categories
+  const NR_TIP_LABEL={'tcp':'🔴 TCP no-return (refused/blocked)','udp-sus':'🟠 UDP no-return (suspect port)','udp-ok':'🟡 UDP one-way normal (kept)'};
+  c.querySelectorAll('[data-nr-tip]').forEach(el=>{
+    el.addEventListener('mouseenter',ev=>{
+      const svcs=el.dataset.nrTip||'—';
+      const cat=el.dataset.nrCat||'';
+      const label=NR_TIP_LABEL[cat]||'No-return';
+      showTip(ev,`<div style="font-weight:700;margin-bottom:4px">${label}</div><div style="font-size:11px;color:var(--t2);line-height:1.7">${svcs}</div>`);
+    });
+    el.addEventListener('mouseleave',hideTip);
+  });
+  // NAT tooltip
+  c.querySelectorAll('[data-nat-tip]').forEach(el=>{
+    el.addEventListener('mouseenter',ev=>{
+      const tip=el.dataset.natTip||'—';
+      showTip(ev,`<div style="font-weight:700;margin-bottom:4px">🔵 NAT details</div><div style="font-size:11px;color:var(--t2);line-height:1.8">${tip}</div>`);
+    });
+    el.addEventListener('mouseleave',hideTip);
+  });
+  // × on NR dst tags → toggle exclude/reactivate (visual + export only, no tree rebuild)
+  c.querySelectorAll('[data-excl-dst]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const ip=b.dataset.exclDst;
+    if(S.nrExcludedDsts.has(ip)){
+      S.nrExcludedDsts.delete(ip);
+      setStatus(`Reactivated ${ip}`,true);
+    } else {
+      S.nrExcludedDsts.add(ip);
+      setStatus(`Excluded ${ip} from export`,true);
+    }
+    renderTree();updateUI();
+  }));
+  // Unmerge buttons
+  c.querySelectorAll('[data-unmerge]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    unmergeNode(b.dataset.unmerge);
+  }));
+}
+
+function rnode(n,d,nrDsts,nrCats){
+  const ind=d*16,hk=n.children?.length>0;
+  // NR category for this node
+  let nrCat=null;
+  if(n.noReturn){
+    for(const f of n.flows){
+      const c=nrCategory(f);
+      if(c==='tcp'){nrCat='tcp';break;}
+      if(c==='udp-sus')nrCat='udp-sus';
+      else if(!nrCat)nrCat='udp-ok';
+    }
+  }
+  const nrRowCls=nrCat?`nr-${nrCat}`:'';
+  const sig=nodeSig(n);
+  const isTreated=S.treated.has(sig);
+  // Detect invalid node: no valid src OR no valid dst after exclusions
+  const hasValidSrcN=n.srcs.length===0||n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0]));
+  const hasValidDstN=n.dsts.length===0||n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+  const nodeEmpty=!hasValidSrcN||!hasValidDstN;
+  const rc=['tr',n.active?'act':'gho',(n.selected&&!n.expanded)?'sel':'',nrRowCls,isTreated?'treated':'',nodeEmpty?'empty-node':'',n.id===S._highlightId?'fl-highlight':''].filter(Boolean).join(' ');
+  const tog=hk?`<button class="tbtn" data-t="${n.id}">${n.expanded?'－':'＋'}</button>`:`<div class="tsp"></div>`;
+  const chk=(n.active&&!n.expanded)?`<button class="cbtn ${n.selected?'ck':''}" data-ck="${n.id}">${n.selected?'✓':''}</button>`:`<div class="tsp"></div>`;
+  const v6=n.isV6?`<span class="nb n6">v6</span>`:'';
+  const mergedBadge=n.isMerged?`<span class="merged-badge">⊕ Merged (${n.mergedFrom?.length||0})<button class="unmerge-btn" data-unmerge="${n.id}" title="Undo merge">✕</button></span>`:'';
+  const treatedNote=S.treatedNotes.get(sig)||'';
+  const treatedBadge=isTreated?`<span class="treated-badge" data-untreat="${sig}" title="Cliquer pour démarquer">✓ Traité${treatedNote?` · <span class='treated-note-inline'>${treatedNote.replace(/</g,'&lt;')}</span>`:''}</span>`:'';
+  const emptyLabel=!hasValidSrcN&&!hasValidDstN?'Sans source ni destination':!hasValidSrcN?'Sans source':'Sans destination';
+  const emptyNodeBadge=nodeEmpty
+    ?`<span class="empty-node-badge">⚠️ ${emptyLabel}<button class="empty-node-restore" data-restore-node="${n.id}" title="Rétablir">↩ Rétablir</button></span>`
+    :'';
+  let nrBadge='';
+  // Build NR badge with tooltip for all categories
+  if(nrCat==='tcp'){
+    const tcpFlows=n.flows.filter(f=>nrCategory(f)==='tcp');
+    const tcpSvcs=[...new Set(tcpFlows.map(f=>{const lbl=svcKeyLabel(f.svcKey);const n=lookupSvcName(f.svcKey);return(n&&n!==lbl)?`${n} (${lbl})`:lbl;}))].join(', ');
+    nrBadge=`<span class="nb nnr-tcp" data-nr-tip="${tcpSvcs.replace(/"/g,'&quot;')}" data-nr-cat="tcp">🔴 NR-TCP</span>`;
+  } else if(nrCat==='udp-sus'){
+    const susSvcs=[...new Set(n.flows.filter(f=>nrCategory(f)==='udp-sus').map(f=>{const lbl=svcKeyLabel(f.svcKey);const nm=lookupSvcName(f.svcKey);return(nm&&nm!==lbl)?`${nm} (${lbl})`:lbl;}))].join(', ');
+    nrBadge=`<span class="nb nnr-udp-sus" data-nr-tip="${susSvcs.replace(/"/g,'&quot;')}" data-nr-cat="udp-sus">🟠 NR-UDP?</span>`;
+  } else if(nrCat==='udp-ok'){
+    const okSvcs=[...new Set(n.flows.filter(f=>nrCategory(f)==='udp-ok').map(f=>{const lbl=svcKeyLabel(f.svcKey);const nm=lookupSvcName(f.svcKey);return(nm&&nm!==lbl)?`${nm} (${lbl})`:lbl;}))].join(', ');
+    nrBadge=`<span class="nb nnr-udp-ok" data-nr-tip="${okSvcs.replace(/"/g,'&quot;')}" data-nr-cat="udp-ok">🟡 NR-UDP</span>`;
+  }
+
+  // NAT badge — show if any flow has NAT
+  let natBadge='';
+  const natFlows=n.flows.filter(f=>f.nat);
+  if(natFlows.length){
+    // Aggregate NAT types
+    const hasS=natFlows.some(f=>f.nat.type&&f.nat.type.includes('snat'));
+    const hasD=natFlows.some(f=>f.nat.type&&f.nat.type.includes('dnat'));
+    const natCls=hasS&&hasD?'nat-both':hasD?'nat-dnat':'nat-snat';
+    const natLbl=hasS&&hasD?'SNAT+DNAT':hasD?'DNAT':'SNAT';
+    // Build tooltip details
+    const snatDetails=[...new Set(natFlows.filter(f=>f.nat?.snatIp).map(f=>`${f.nat.snatIp}${f.nat.snatPort?':'+f.nat.snatPort:''}`))];
+    const dnatDetails=[...new Set(natFlows.filter(f=>f.nat?.dnatIp).map(f=>`${f.nat.dnatIp}${f.nat.dnatPort?':'+f.nat.dnatPort:''}`))];
+    let natTip='';
+    if(snatDetails.length)natTip+=`SNAT → ${snatDetails.join(', ')}`;
+    if(dnatDetails.length)natTip+=(natTip?'<br>':'')+`DNAT → ${dnatDetails.join(', ')}`;
+    natBadge=`<span class="nb ${natCls}" data-nat-tip="${(natTip||natLbl).replace(/"/g,'&quot;')}">🔵 ${natLbl}</span>`;
+  }
+
+  const svcScore=svcPerm(n.svcs);
+  const cidrScore=Math.min(100,Math.round(nodePerm(n.srcs,n.dsts,n.isV6,[])));
+  const pp=`<span class="pp" style="background:${pcolor(n.perm)}18;color:${pcolor(n.perm)}" title="Perm ${n.perm}/100 = CIDR ${cidrScore}×70% + SVC ${svcScore}×30%">${n.perm}</span>`;
+  const nh=`<span class="nh">${n.hits.toLocaleString('fr-FR')} fl.</span>`;
+
+  // Intf/zone helper — FG: lookup zone from ObjDB; PA: zone already in srcintf, show physical face from flows
+  const isPA=n.flows&&n.flows[0]&&n.flows[0].source==='pa';
+  function intfLabel(arr,faceKey){
+    if(!arr||!arr.length)return'';
+    const zones=[...new Set(arr.map(i=>isPA?i:(zoneForIntf(i)||i)))];
+    if(isPA&&faceKey&&n.flows&&n.flows.length){
+      // dominant physical interface from flows
+      const faceCounts={};
+      n.flows.forEach(f=>{const fc=f[faceKey];if(fc){faceCounts[fc]=(faceCounts[fc]||0)+1;}});
+      const domFace=Object.entries(faceCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+      return zones.join(', ')+(domFace?` (${domFace})`:'');
+    }
+    return zones.join(', ');
+  }
+  const srcIntfArr=n.srcintfs||[n.srcintf].filter(Boolean);
+  const dstIntfArr=n.dstintfs||[n.dstintf].filter(Boolean);
+  const srcIntfTxt=intfLabel(srcIntfArr,'srcface');
+  const dstIntfTxt=intfLabel(dstIntfArr,'dstface');
+  const srcIntfSpan=srcIntfTxt?` <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:5px;font-family:'JetBrains Mono',monospace">↳ ${srcIntfTxt}</span>`:'';
+  const dstIntfSpan=dstIntfTxt?` <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:5px;font-family:'JetBrains Mono',monospace">↳ ${dstIntfTxt}</span>`:'';
+
+  // Sources — always shown as tag list with optional obj name annotation
+  const srcHtml=`<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0"><span class="nb ns">SRC</span>${srcIntfSpan}<div class="dst-list" style="margin-top:2px">${n.srcs.map(s=>`<span class="dst-tag">${fmtCidr(s,n.isV6)}</span>`).join('')}</div></div>`;
+
+  // Destinations — tag list with NR coloring + × toggle button on non-normal NR + obj name
+  const dstTagFn=(d)=>{
+    const ip=d.split('/')[0];
+    const dnrCat=nrCats?.get(ip);
+    const isExcludable=dnrCat==='tcp'||dnrCat==='udp-sus';
+    const isExcluded=S.nrExcludedDsts.has(ip);
+    const cls=[dnrCat?`nr-${dnrCat}`:'',isExcluded?'nr-excl':''].filter(Boolean).join(' ');
+    const xBtn=isExcludable
+      ?`<span class="dst-tag-x${isExcluded?' reactivate':''}" data-excl-dst="${ip}" title="${isExcluded?'Click to reactivate':'Exclude this destination from export (NR)'}">${isExcluded?'↩':'×'}</span>`
+      :'';
+    return`<span class="dst-tag ${cls}">${fmtCidr(d,n.isV6)}${xBtn}</span>`;
+  };
+  const dstHtml=`<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0"><span class="nb nd">DST</span>${dstIntfSpan}<div class="dst-list" style="margin-top:2px">${n.dsts.map(dstTagFn).join('')}</div></div>`;
+
+  const svcHtml=`<span class="nb nv">SVC</span> <span style="font-size:11px;color:var(--t2)">${n.svcs.map(fmtSvcHtml).join(', ')}</span>`;
+  const lbl=`<div style="flex:1;min-width:0">${srcHtml}${dstHtml}${svcHtml}</div>`;
+  let html=`<div class="tn" style="padding-left:${ind}px" data-nid="${n.id}"><div class="${rc}">${tog}${chk}${v6}${mergedBadge}${emptyNodeBadge}${treatedBadge}${nrBadge}${natBadge}<span class="${n.active?'nt':'ng'}" style="flex:1;min-width:0">${lbl}</span><div style="display:flex;gap:4px;flex-shrink:0;align-items:flex-start;margin-left:6px;margin-top:2px">${nh}${pp}</div></div>`;
+  if(n.expanded&&hk)html+=`<div class="nc">${n.children.map(c=>rnode(c,d+1,nrDsts,nrCats)).join('')}</div>`;
+  return html+'</div>';
+}
+
+// ================================================================
+// INSIGHTS
+// ================================================================
+function genInsights(flows,tree){
+  const ins=[];
+  const all=dedup(flows);
+  const nrFlows=all.filter(f=>f.noReturn);
+  const nrTCP=nrFlows.filter(f=>f.proto===6);
+  const nrUDPSus=nrFlows.filter(f=>f.proto===17&&!NR_UDP_NORMAL_PORTS.has(f.port));
+  if(nrTCP.length){const pct=Math.round(nrTCP.length/all.length*100);ins.push({t:pct>10?'crit':'warn',h:`🔴 ${nrTCP.length} TCP no-return flow(s) (${pct}%)`,b:'TCP sent bytes > 0 but no reply. Likely connection refused, blocked, or host unreachable.'});}
+  if(nrUDPSus.length){ins.push({t:'warn',h:`🟠 ${nrUDPSus.length} suspect UDP no-return flow(s)`,b:`UDP ports with no response on unexpected ports: ${[...new Set(nrUDPSus.map(f=>f.port))].slice(0,8).join(', ')}`});}
+  const extDsts=all.filter(f=>f.dstcountry&&!['Private','Reserved',''].includes(f.dstcountry));
+  const countries=[...new Set(extDsts.map(f=>f.dstcountry))];
+  if(countries.length>0)ins.push({t:'info',h:`🌍 ${countries.length} destination countries`,b:countries.slice(0,6).join(', ')+(countries.length>6?` +${countries.length-6} more`:'')});
+  if(S.anchorMode==='auto'||(!S.fixSrc&&!S.fixDst)){
+    const sigs=buildBehavioralSignatures(all);
+    const srcIps=[...sigs.keys()];
+    if(srcIps.length>=2){
+      let behavMerges=0;
+      for(let i=0;i<srcIps.length;i++)
+        for(let j=i+1;j<srcIps.length;j++)
+          if(jaccardSimilarity(sigs.get(srcIps[i]),sigs.get(srcIps[j]))>=BEHAV_THRESHOLD)behavMerges++;
+      if(behavMerges>0)ins.push({t:'info',h:`🧠 ${behavMerges} behavioral cluster(s)`,b:`Sources sharing ≥${Math.round(BEHAV_THRESHOLD*100)}% destination+service patterns were grouped.`});
+    }
+  }
+  if(S.nrExcludedDsts.size>0)ins.push({t:'info',h:`🚫 ${S.nrExcludedDsts.size} IP(s) individually excluded`,b:`Manually excluded NR destinations: ${[...S.nrExcludedDsts].join(', ')}`});
+  if(!ins.length)ins.push({t:'ok',h:'✅ No anomalies detected',b:'Use the slider or Auto-Optimize to find your optimal rule set.'});
+  const il=document.getElementById('il');
+  il.innerHTML=ins.map(i=>`<div class="insight ${i.t}"><div class="insight-title">${i.h}</div><div class="insight-body">${i.b}</div></div>`).join('');
+}
+
+// ================================================================
+// UI UPDATE
+// ================================================================
+function setPerm(p){
+  S.perm=Math.max(0,Math.min(100,p));
+  const slider=document.getElementById('pslider');
+  slider.value=100-S.perm;
+  const pv=document.getElementById('pval');
+  pv.textContent=S.perm;pv.style.color=pcolor(S.perm);
+  const pbf=document.getElementById('pbf');
+  pbf.style.width=S.perm+'%';pbf.style.background=pcolor(S.perm);
+  if(S.tree){
+    const rc=countActive(S.tree);
+    document.getElementById('pmain').textContent=rc;
+    document.getElementById('psub').textContent=`rule${rc!==1?'s':''} at current level`;
+    renderTree();updateUI();renderGraph(S.curve,S.perm);
+  }
+}
+function updateAnchorMode(){
+  S.fixSrc=document.getElementById('anc-fix-src').checked;
+  S.fixDst=document.getElementById('anc-fix-dst').checked;
+  S.anchorMode=S.fixSrc&&S.fixDst?'both':S.fixSrc?'src':S.fixDst?'dst':'auto';
+  // Update AUTO badge visibility
+  const autoBadge=document.getElementById('anc-auto-lbl');
+  if(autoBadge)autoBadge.style.display=(!S.fixSrc&&!S.fixDst)?'inline':'none';
+  // Update row highlight
+  document.getElementById('anc-row-src').classList.toggle('active',S.fixSrc);
+  document.getElementById('anc-row-dst').classList.toggle('active',S.fixDst);
+  if(S.selPol){
+    const flows=activeFlows();S.tree=buildTree(flows);S.curve=computeCurve(S.tree);
+    S.optimalPerm=null;resetOvr(S.tree);applyPerm(S.tree,S.perm);
+    renderGraph(S.curve,S.perm);renderTree();updateUI();
+  }
+}
+function updateAggInfo(){
+  const box=document.getElementById('agg-info');
+  if(!S.tree){box.style.display='none';return;}
+  const nodes=getAllActive(S.tree);
+  if(!nodes.length){box.style.display='none';return;}
+  const allSrcs=new Set(),allDsts=new Set(),srcCidrs=new Set(),dstCidrs=new Set();
+  for(const n of nodes){
+    for(const s of n.srcs){srcCidrs.add(s);const ip=s.split('/')[0];allSrcs.add(ip);}
+    for(const d of n.dsts){dstCidrs.add(d);const ip=d.split('/')[0];allDsts.add(ip);}
+  }
+  document.getElementById('agg-src').textContent=`SRC: ${allSrcs.size} IPs → ${srcCidrs.size} CIDR(s)`;
+  document.getElementById('agg-dst').textContent=`DST: ${allDsts.size} IPs → ${dstCidrs.size} CIDR(s)`;
+  box.style.display='block';
+}
+function updateUI(){
+  if(!S.tree)return;
+  applyPerm(S.tree,S.perm);
+  const rc=countActive(S.tree);
+  const ap=avgPermActive(S.tree);
+  const sc=countSel(S.tree);
+  const total=S.flows.length;
+  const maxR=countAt(S.tree,0);
+  const gain=maxR?Math.round((1-rc/maxR)*100):0;
+  document.getElementById('h-rules').textContent=rc;
+  document.getElementById('h-perm').textContent=ap;
+  document.getElementById('pmain').textContent=rc;
+  document.getElementById('psub').textContent=`rule${rc!==1?'s':''} at current level`;
+  const scnt=document.getElementById('scnt');
+  scnt.textContent=sc+' sel.';scnt.style.display=sc>0?'inline':'none';
+  const mergeBtn=document.getElementById('b-merge');
+  if(mergeBtn){mergeBtn.style.display=sc>=2?'inline-flex':'none';mergeBtn.textContent=`⊕ Merge (${sc})`;}
+  const treatBtn=document.getElementById('b-treat');
+  if(treatBtn){treatBtn.style.display=sc>=1?'inline-flex':'none';treatBtn.textContent=`✓ Traité (${sc})`;}
+  // Treated counter in header
+  const tc=S.treated.size;
+  const tcEl=document.getElementById('treated-counter');
+  if(tcEl){tcEl.textContent=`✓ ${tc}/${rc} traités`;tcEl.classList.toggle('vis',tc>0);}
+  document.getElementById('tsub').textContent=`${rc} rules · Avg perm ${ap}/100 · ${gain}% fewer vs /32${tc>0?` · ${tc} traités`:''}`;
+  document.getElementById('b-hub-trigger').disabled=false;
+  updateAggInfo();
+}
+
+// ================================================================
+// OBJECT DATABASE — PARSE & RESOLVE
+// ================================================================
+function parseFortiObjDB(text){
+  const db={addr:{},addr6:{},svc:{},zone:{}};
+  let section=null,curName=null,curObj={};
+  const commit=()=>{
+    if(!curName)return;
+    if(section==='addr')db.addr[curName]={...curObj};
+    else if(section==='addr6')db.addr6[curName]={...curObj};
+    else if(section==='svc')db.svc[curName]={...curObj};
+    else if(section==='zone'){
+      // zone: interface list → build intf→zoneName map
+      if(curObj.interface){
+        curObj.interface.split(/\s+/).forEach(iface=>{
+          if(iface)db.zone[iface]=curName;
+        });
+      }
+    }
+    curName=null;curObj={};
+  };
+  for(const raw of text.split('\n')){
+    const line=raw.trim();
+    if(line==='config firewall address'){section='addr';continue;}
+    if(line==='config firewall address6'){section='addr6';continue;}
+    if(line==='config firewall service custom'){section='svc';continue;}
+    if(line==='config system zone'){section='zone';continue;}
+    if(/conf(?:ig)?\s+system\s+sdwan/.test(line)&&!line.includes('# show')&&!line.includes('# end')){section='sdwan';continue;}
+    if(section==='sdwan'&&(line==='config members'||line.includes('show full-configuration members'))){continue;} // sub-section or prompt line
+    if(line==='end'&&section){
+      // For sdwan members, commit on end too
+      if(section==='sdwan'&&curName&&curObj.interface&&curObj.zone){
+        const iface=curObj.interface.replace(/"/g,'').trim();
+        const z=curObj.zone.replace(/"/g,'').trim();
+        if(iface&&z)db.zone[iface]=z;
+      } else {
+        commit();
+      }
+      section=null;curName=null;curObj={};continue;
+    }
+    if(!section)continue;
+    const em=line.match(/^edit\s+"?([^"]+)"?$/);
+    if(em){
+      // For sdwan, commit current member before moving to next
+      if(section==='sdwan'&&curName&&curObj.interface&&curObj.zone){
+        const iface=curObj.interface.replace(/"/g,'').trim();
+        const z=curObj.zone.replace(/"/g,'').trim();
+        if(iface&&z)db.zone[iface]=z;
+      } else {
+        commit();
+      }
+      curName=em[1];curObj={};continue;
+    }
+    if(line==='next'){
+      if(section==='sdwan'&&curName&&curObj.interface&&curObj.zone){
+        const iface=curObj.interface.replace(/"/g,'').trim();
+        const z=curObj.zone.replace(/"/g,'').trim();
+        if(iface&&z)db.zone[iface]=z;
+      } else {
+        commit();
+      }
+      curName=null;curObj={};continue;
+    }
+    const sm=line.match(/^set\s+(\S+)\s+(.+)$/);
+    if(sm)curObj[sm[1]]=sm[2].replace(/"/g,'').trim();
+  }
+  // Build cidr lookup: cidr_string → name
+  const addrIndex={};
+  for(const [name,obj] of Object.entries(db.addr)){
+    if(obj.subnet){
+      const parts=obj.subnet.trim().split(/\s+/);
+      if(parts.length===2){
+        const ip=parts[0],mask=parts[1];
+        // Convert mask to prefix
+        let prefix=32;
+        if(mask.includes('.')){
+          const n=ip4int(mask);
+          if(n!==null){let p=0;let v=n;while(v&0x80000000){p++;v=(v<<1)>>>0;}prefix=p;}
+        } else prefix=parseInt(mask);
+        addrIndex[`${ip}/${prefix}`]=name;
+      }
+    } else if(obj['start-ip']&&obj['end-ip']){
+      addrIndex[`range:${obj['start-ip']}-${obj['end-ip']}`]=name;
+    }
+  }
+  const addr6Index={};
+  for(const [name,obj] of Object.entries(db.addr6)){
+    if(obj.ip6)addr6Index[obj.ip6]=name;
+  }
+  // Build svc lookup: "proto:port" → name, or "ip:N" → name for IP protocols
+  const svcIndex={};
+  for(const [name,obj] of Object.entries(db.svc)){
+    const proto=obj.protocol?obj.protocol.toUpperCase():'TCP';
+    if(proto==='IP'&&obj['protocol-number']){
+      svcIndex[`ip:${obj['protocol-number'].trim()}`]=name;
+      continue;
+    }
+    if(proto==='ICMP'||proto==='ICMP6'){
+      svcIndex[proto==='ICMP'?'icmp:0':'icmp6:0']=name;
+      continue;
+    }
+    const ports=obj['tcp-portrange']||obj['udp-portrange']||obj['sctp-portrange']||'';
+    if(ports){
+      const port=ports.split(' ')[0].split(':')[0].split('-')[0];
+      const protoNum=proto==='TCP'?6:proto==='UDP'?17:0;
+      if(protoNum)svcIndex[`${protoNum}:${port}`]=name;
+    }
+  }
+  return{addrIndex,addr6Index,svcIndex,zone:db.zone||{}};
+}
+
+function parsePAObjDB(text){
+  // zone{} not used for PA — zones come directly from log fields (Source Zone / Destination Zone)
+  // Supports two formats:
+  //   "set" format : set address "Name" ip-netmask X  (operational mode)
+  //   "bloc" format: address { Name { ip-netmask X; } } (configure mode)
+  const addrIndex={},addr6Index={},svcIndex={},zone={};
+  const isBlocFmt=/^(address|service)\s*\{/m.test(text);
+  if(!isBlocFmt){
+    // ── SET format ─────────────────────────────────────────────
+    for(const line of text.split('\n')){
+      const l=line.trim();
+      let m=l.match(/^set address\s+"?([^"]+)"?\s+ip-netmask\s+(\S+)/);
+      if(m){const cidr=m[2].includes('/')?m[2]:`${m[2]}/32`;if(cidr.includes(':'))addr6Index[cidr]=m[1];else addrIndex[cidr]=m[1];continue;}
+      m=l.match(/^set service\s+"?([^"]+)"?\s+protocol\s+(tcp|udp)\s+port\s+(\S+)/i);
+      if(m){const proto=m[2].toLowerCase()==='tcp'?6:17;svcIndex[`${proto}:${m[3].split('-')[0]}`]=m[1];}
+    }
+    return{addrIndex,addr6Index,svcIndex,zone};
+  }
+  // ── BLOC format ────────────────────────────────────────────────────────
+  // Strip CLI prompts (user@fw#) and [edit] markers before parsing
+  const cleanLines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n')
+    .filter(l=>!l.trim().startsWith('[')&&!/^\S+@\S+[#>]/.test(l.trim()));
+  let depth=0,section=null,objName=null,proto=null;
+  for(const line of cleanLines){
+    const l=line.trim();
+    if(!l)continue;
+    const opens=(l.match(/\{/g)||[]).length;
+    const closes=(l.match(/\}/g)||[]).length;
+    if(depth===0&&opens>0){
+      const kw=l.replace(/\{.*/,'').trim();
+      section=['address','service','address-group','service-group','zone'].includes(kw)?kw:null;
+      depth+=opens-closes;objName=null;proto=null;continue;
+    }
+    const depthBefore=depth;
+    depth+=opens-closes;
+    if(depth<=0){depth=0;section=null;objName=null;proto=null;continue;}
+    if(section==='address'){
+      if(depthBefore===1&&opens>0){objName=l.replace(/\{.*/,'').trim();continue;}
+      if(objName&&closes>0&&depth===1){objName=null;continue;}
+      if(objName){
+        const m=l.match(/^ip-netmask\s+(\S+?);?$/);
+        if(m){const cidr=m[1].includes('/')?m[1]:`${m[1]}/32`;if(cidr.includes(':'))addr6Index[cidr]=objName;else addrIndex[cidr]=objName;}
+      }
+    } else if(section==='service'){
+      if(depthBefore===1&&opens>0){objName=l.replace(/\{.*/,'').trim();proto=null;continue;}
+      if(objName&&closes>0&&depth===1){objName=null;proto=null;continue;}
+      if(objName){
+        if(/^tcp[\s{;]/.test(l)||l==='tcp')proto=6;
+        else if(/^udp[\s{;]/.test(l)||l==='udp')proto=17;
+        const m=l.match(/^port\s+(\S+?);?$/);
+        if(m&&proto)svcIndex[`${proto}:${m[1].split('-')[0]}`]=objName;
+      }
+    }
+  }
+  return{addrIndex,addr6Index,svcIndex,zone};
+}
+function resolveAddrFG(cidr,isV6){
+  // Check both dbs for existing name (FG first, then PA)
+  for(const db of[S.objDb.forti,S.objDb.pa]){
+    const idx=isV6?(db.addr6Index||{}):(db.addrIndex||{});
+    if(idx[cidr])return{name:idx[cidr],isNew:false};
+  }
+  // Generate standard name
+  const parts=cidr.split('/');
+  const prefix=parseInt(parts[1]||'32');
+  const name=prefix===(isV6?128:32)?`Host-${parts[0]}`:`Net-${parts[0]}_${prefix}`;
+  return{name,isNew:true,cidr};
+}
+// Builtin FG service names (kept for reference in resolveSvcFG)
+const FG_BUILTIN=new Set(['HTTP','HTTPS','DNS','SSH','FTP','FTP-Data','TELNET','SMTP','IMAP','IMAPS','POP3','POP3S','RDP','NTP','SNMP','LDAP','LDAPS','Kerberos','SMB','NetBIOS_NS','NetBIOS_DG','NetBIOS_SS','SIP','MSSQL','MySQL','PostgreSQL','PING','PING6','Syslog','NFS','DCE-RPC','IKE','IPSEC','WinRM-HTTP','WinRM-HTTPS','amqp','amqps']);
+// Map internal svc name → canonical FG builtin name
+const FG_SVC_MAP={'HTTP':'HTTP','HTTPS':'HTTPS','DNS':'DNS','DNS-TCP':'DNS','SSH':'SSH','FTP':'FTP','FTP-Data':'FTP','Telnet':'TELNET','SMTP':'SMTP','SMTP-TLS':'SMTP','IMAP':'IMAP','IMAPS':'IMAPS','POP3':'POP3','POP3S':'POP3S','RDP':'RDP','NTP':'NTP','SNMP':'SNMP','LDAP':'LDAP','LDAPS':'LDAPS','Kerberos':'Kerberos','Kerberos-CPW':'Kerberos','SMB':'SMB','NetBIOS-NS':'NetBIOS_NS','NetBIOS-DG':'NetBIOS_DG','NetBIOS-SS':'NetBIOS_SS','SIP':'SIP','SIP-TCP':'SIP','SIP-TLS':'SIP','WinRM':'WinRM-HTTP','WinRM-HTTPS':'WinRM-HTTPS','MSSQL':'MSSQL','MySQL':'MySQL','PostgreSQL':'PostgreSQL','HTTP-Alt':'HTTP','HTTPS-Alt':'HTTPS','ICMP':'PING','ICMPv6':'PING6','Syslog':'Syslog','Syslog-TCP':'Syslog','NFS':'NFS','RPC':'DCE-RPC','IKE':'IKE','IPsec-NAT':'IPSEC','AMQP':'amqp','AMQPS':'amqps'};
+function resolveSvcFG(svcKey){
+  // svcKey format: "6:80" (tcp-80), "17:53" (udp-53), "1:0" (icmp), "47:0" (gre/IP-47)
+  // Parse the key
+  const kp=svcKey.match(/^(\d+):(\d+)$/);
+  if(!kp)return{name:svcKey,isNew:false}; // unrecognized format, pass through
+  const proto=parseInt(kp[1]),port=parseInt(kp[2]);
+  // ICMP
+  if(proto===1)return{name:'PING',isNew:false};
+  if(proto===58)return{name:'PING6',isNew:false};
+  // Other IP protocols (not TCP/UDP/ICMP)
+  if(proto!==6&&proto!==17){
+    for(const db of[S.objDb.forti,S.objDb.pa]){if(db.svcIndex&&db.svcIndex[`ip:${proto}`])return{name:db.svcIndex[`ip:${proto}`],isNew:false};}
+    return{name:`IP-${proto}`,isNew:true,isIP:true,protoNum:proto};
+  }
+  // TCP / UDP — ObjDB first
+  for(const db of[S.objDb.forti,S.objDb.pa]){if(db.svcIndex&&db.svcIndex[svcKey])return{name:db.svcIndex[svcKey],isNew:false};}
+  // FG builtins (HTTP, HTTPS, DNS, …)
+  if(SVC_NAMES[svcKey]){
+    const dispName=SVC_NAMES[svcKey];
+    const ftName=FG_SVC_MAP[dispName]||dispName;
+    if(FG_BUILTIN.has(ftName))return{name:ftName,isNew:false};
+  }
+  // Generate canonical name: TCP-80 / UDP-53
+  const protoStr=proto===6?'TCP':'UDP';
+  const canonical=`${protoStr}-${port}`;
+  return{name:canonical,isNew:true,proto:protoStr,port:String(port)};
+}
+function resolveAddrPA(cidr,isV6){
+  // Check both dbs for existing name (PA first, then FG)
+  for(const db of[S.objDb.pa,S.objDb.forti]){
+    const idx=isV6?(db.addr6Index||{}):(db.addrIndex||{});
+    if(idx&&idx[cidr])return{name:idx[cidr],isNew:false};
+  }
+  const parts=cidr.split('/');
+  const prefix=parseInt(parts[1]||'32');
+  const name=prefix===(isV6?128:32)?`Host-${parts[0]}`:`Net-${parts[0]}_${prefix}`;
+  return{name,isNew:true,cidr};
+}
+function resolveSvcPA(svcKey){
+  // Same logic as resolveSvcFG — svcKey format "6:80", "17:53", "1:0"
+  const kp=svcKey.match(/^(\d+):(\d+)$/);
+  if(!kp)return{name:svcKey,isNew:false};
+  const proto=parseInt(kp[1]),port=parseInt(kp[2]);
+  if(proto===1)return{name:'PING',isNew:false};
+  if(proto===58)return{name:'PING6',isNew:false};
+  if(proto!==6&&proto!==17){
+    for(const db of[S.objDb.pa,S.objDb.forti]){if(db.svcIndex&&db.svcIndex[`ip:${proto}`])return{name:db.svcIndex[`ip:${proto}`],isNew:false};}
+    return{name:`IP-${proto}`,isNew:true,isIP:true,protoNum:proto};
+  }
+  // TCP/UDP — ObjDB first (PA then FG)
+  for(const db of[S.objDb.pa,S.objDb.forti]){if(db.svcIndex&&db.svcIndex[svcKey])return{name:db.svcIndex[svcKey],isNew:false};}
+  // FG builtins shared
+  if(SVC_NAMES[svcKey]){
+    const dispName=SVC_NAMES[svcKey];
+    const ftName=FG_SVC_MAP[dispName]||dispName;
+    if(FG_BUILTIN.has(ftName))return{name:ftName,isNew:false};
+  }
+  const protoStr=proto===6?'TCP':'UDP';
+  return{name:`${protoStr}-${port}`,isNew:true,proto:protoStr,port:String(port)};
+}
+
+// Lookup existing object name for a CIDR — checks both FG and PA dbs (whichever has it)
+
+function zoneForIntf(intf){
+  // Only FG ObjDB has zone mappings; PA zones come directly from log fields
+  const z=S.objDb.forti.zone;
+  return(z&&z[intf])||'';
+}
+function lookupObjName(cidr,isV6){
+  // Always return name if found in ObjDB (no toggle guard)
+  for(const db of[S.objDb.forti,S.objDb.pa]){
+    const idx=isV6?(db.addr6Index||{}):(db.addrIndex||{});
+    if(idx[cidr])return idx[cidr];
+  }
+  return null;
+}
+// Lookup existing service object name — checks both FG and PA svcIndex
+function lookupSvcName(svc){
+  // Accepts both "6:80" (svcKey) and "tcp-80" (legacy) format
+  // Priority: ObjDB > SVC_NAMES builtin > null
+  let key; // canonical "proto:port" key for lookups
+  if(/^\d+:\d+$/.test(svc)){
+    // svcKey format "6:80"
+    key=svc;
+    const [p]=svc.split(':').map(Number);
+    if(p===1)return'ICMP';
+    if(p===58)return'ICMPv6';
+    if(p!==6&&p!==17){
+      for(const db of[S.objDb.forti,S.objDb.pa]){if(db.svcIndex&&db.svcIndex[`ip:${p}`])return db.svcIndex[`ip:${p}`];}
+      return null;
+    }
+  } else {
+    // Legacy format "tcp-80", "ICMP", "IP-47"
+    if(svc==='ICMP'||svc==='ICMPv6')return svc;
+    const ipM=svc.match(/^IP-(\d+)$/);
+    if(ipM){for(const db of[S.objDb.forti,S.objDb.pa]){if(db.svcIndex&&db.svcIndex[`ip:${ipM[1]}`])return db.svcIndex[`ip:${ipM[1]}`];}return null;}
+    const m=svc.match(/^(tcp|udp)-(\d+)$/);
+    if(!m)return null;
+    key=`${m[1]==='tcp'?6:17}:${m[2]}`;
+  }
+  // ObjDB lookup
+  for(const db of[S.objDb.forti,S.objDb.pa]){const idx=db.svcIndex||{};if(idx[key])return idx[key];}
+  // SVC_NAMES fallback
+  if(SVC_NAMES[key])return SVC_NAMES[key];
+  return null;
+}
+// Convert svcKey "6:80" to human label "tcp-80" / "ICMP" / "IP-47" (no ObjDB)
+function svcKeyLabel(svcKey){
+  if(!/^\d+:\d+$/.test(svcKey))return svcKey; // already legacy format, pass through
+  const [p,pt]=svcKey.split(':').map(Number);
+  if(p===1)return'ICMP';
+  if(p===58)return'ICMPv6';
+  if(p===6)return`tcp-${pt}`;
+  if(p===17)return`udp-${pt}`;
+  return`IP-${p}`;
+}
+// Format svc with optional obj name annotation (HTML)
+function fmtSvcHtml(svc){
+  const label=svcKeyLabel(svc);       // "6:80"→"tcp-80", or passes through legacy
+  const name=lookupSvcName(svc);      // ObjDB or SVC_NAMES: "HTTP", "MyService"…
+  if(!name||name===label)return label; // no enrichment → just show "tcp-80"
+  return`${name}<span class="obj-name-lbl">(${label})</span>`;
+}
+// Format svc with optional obj name annotation (plain text)
+function fmtSvcPlain(svc){
+  const label=svcKeyLabel(svc);
+  const name=lookupSvcName(svc);
+  if(!name||name===label)return label;
+  return`${name} (${label})`;
+}
+function fmtCidrPlain(cidr,isV6){
+  const name=lookupObjName(cidr,isV6);
+  return name?`${name} (${cidr})`:cidr;
+}
+// Format a CIDR with optional obj name annotation (HTML)
+function fmtCidr(cidr,isV6){
+  const name=lookupObjName(cidr,isV6);
+  if(name)return`${name}<span class="obj-name-lbl">(${cidr})</span>`;
+  return cidr;
+}
+
+// ================================================================
+// EXPORT HUB
+// ================================================================
+function cidr4mask(p){const m=p===0?0:(0xFFFFFFFF<<(32-p))>>>0;return int2ip4(m);}
+function genFortinet(nodes,polName,disableRules,includeTreated){
+  const lines=[],ts=new Date().toLocaleString('en-GB');
+  const hasObjDb=S.objDb.forti.addrIndex&&Object.keys(S.objDb.forti.addrIndex).length>0;
+  const prefix=document.getElementById('forti-prefix')?.value||'OPT';
+  const newAddrs=[],newAddrs6=[],newSvcs=[];
+  const seenAddr=new Set(),seenSvc=new Set();
+  nodes.forEach(n=>{
+    const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    [...n.srcs,...effDsts].forEach(cidr=>{
+      if(seenAddr.has(cidr))return;seenAddr.add(cidr);
+      const r=resolveAddrFG(cidr,n.isV6);
+      if(r.isNew){if(n.isV6)newAddrs6.push(r);else newAddrs.push(r);}
+    });
+    n.svcs.forEach(svc=>{
+      if(seenSvc.has(svc))return;seenSvc.add(svc);
+      const r=resolveSvcFG(svc);
+      if(r.isNew)newSvcs.push(r);
+    });
+  });
+  const P=s=>s; // no indent — direct output
+  const skippedEmpty=nodes.filter(n=>
+    !n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0]))||
+    !n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0]))
+  ).length;
+  lines.push(`! ==============================================================`);
+  lines.push(`! FireAPG v0.19 — Source policy: ${polName}`);
+  lines.push(`! ${nodes.length} rule(s) — ${ts}${disableRules?' — rules disabled':''}`);
+  if(hasObjDb)lines.push(`! Object DB loaded — matched existing objects by name`);
+  if(skippedEmpty>0)lines.push(`! ${skippedEmpty} règle(s) ignorée(s) — toutes destinations exclues`);
+  lines.push(`! ==============================================================`);lines.push('');
+  if(newAddrs.length){
+    lines.push(`! === NEW IPv4 ADDRESS OBJECTS (${newAddrs.length}) ===`);
+    lines.push(`config firewall address`);
+    newAddrs.forEach(r=>{
+      const pt=r.cidr.split('/');
+      lines.push(`edit "${r.name}"`);
+      lines.push(`set subnet ${pt[0]} ${cidr4mask(parseInt(pt[1]))}`);
+      lines.push(`next`);
+    });
+    lines.push(`end`);lines.push('');
+  }
+  if(newAddrs6.length){
+    lines.push(`! === NEW IPv6 ADDRESS OBJECTS (${newAddrs6.length}) ===`);
+    lines.push(`config firewall address6`);
+    newAddrs6.forEach(r=>{
+      lines.push(`edit "${r.name}"`);
+      lines.push(`set ip6 ${r.cidr}`);
+      lines.push(`next`);
+    });
+    lines.push(`end`);lines.push('');
+  }
+  if(newSvcs.length){
+    lines.push(`! === NEW SERVICE OBJECTS (${newSvcs.length}) ===`);
+    lines.push(`config firewall service custom`);
+    newSvcs.forEach(r=>{
+      lines.push(`edit "${r.name}"`);
+      if(r.isIP){
+        lines.push(`set protocol IP`);
+        lines.push(`set protocol-number ${r.protoNum}`);
+      } else {
+        lines.push(`set protocol ${r.proto}`);
+        lines.push(`set ${r.proto==='TCP'?'tcp':'udp'}-portrange ${r.port}`);
+      }
+      lines.push(`next`);
+    });
+    lines.push(`end`);lines.push('');
+  }
+  if(newAddrs.length||newAddrs6.length||newSvcs.length)lines.push(`! === FIREWALL POLICIES ===`);
+  lines.push(`config firewall policy`);
+  nodes.forEach((n,i)=>{
+    const nSig=nodeSig(n);
+    if(includeTreated&&S.treated.has(nSig)){
+      const note=S.treatedNotes.get(nSig)||'';
+      lines.push(`! [TRAITÉ]${note?' Note: "'+note+'"':''}`);
+    }
+    // Support multi-intf merged nodes
+    const srcIntfArr=n.srcintfs||[n.srcintf].filter(Boolean);
+    const dstIntfArr=n.dstintfs||[n.dstintf].filter(Boolean);
+    const resolveIntf=arr=>[...new Set(arr.map(i=>zoneForIntf(i)||i))];
+    const srcIntfResolved=resolveIntf(srcIntfArr);
+    const dstIntfResolved=resolveIntf(dstIntfArr);
+    const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    const srcNames=[...new Set(n.srcs.map(c=>resolveAddrFG(c,n.isV6).name))];
+    const dstNames=[...new Set(effDsts.map(c=>resolveAddrFG(c,n.isV6).name))];
+    const svcNames=[...new Set(n.svcs.map(s=>resolveSvcFG(s).name))];
+    const polId=S.selPol||'0';
+    const ruleName=`${prefix}-ID${polId}-${String(i+1).padStart(3,'0')}`;
+    lines.push(`edit 0`);
+    lines.push(`set name "${ruleName}"`);
+    lines.push(`set srcintf ${srcIntfResolved.map(s=>`"${s}"`).join(' ')}`);
+    lines.push(`set dstintf ${dstIntfResolved.map(d=>`"${d}"`).join(' ')}`);
+    lines.push(`set action accept`);
+    if(n.isV6){
+      lines.push(`set srcaddr6 ${srcNames.map(s=>`"${s}"`).join(' ')}`);
+      lines.push(`set dstaddr6 ${dstNames.map(d=>`"${d}"`).join(' ')}`);
+    } else {
+      lines.push(`set srcaddr ${srcNames.map(s=>`"${s}"`).join(' ')}`);
+      lines.push(`set dstaddr ${dstNames.map(d=>`"${d}"`).join(' ')}`);
+    }
+    lines.push(`set schedule "always"`);
+    lines.push(`set service ${svcNames.map(s=>`"${s}"`).join(' ')}`);
+    lines.push(`set logtraffic all`);
+    if(disableRules)lines.push(`set status disable`);
+    lines.push(`next`);
+  });
+  lines.push(`end`);
+  return lines.join('\n');
+}
+function genPaloAlto(nodes,polName,disableRules,includeTreated){
+  const lines=[],ts=new Date().toLocaleString('en-GB');
+  const pol=S.policies[S.selPol];
+  const fromZone=pol?.srcZone||'Trust';const toZone=pol?.dstZone||'Trust';
+  const hasObjDb=S.objDb.pa.addrIndex&&Object.keys(S.objDb.pa.addrIndex).length>0;
+  const prefix=document.getElementById('pa-prefix')?.value||'OPT';
+  const newAddrs=[],newSvcs=[];
+  const seenAddr=new Set(),seenSvc=new Set();
+  nodes.forEach(n=>{
+    const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    [...n.srcs,...effDsts].forEach(cidr=>{
+      if(seenAddr.has(cidr))return;seenAddr.add(cidr);
+      const r=resolveAddrPA(cidr,n.isV6);
+      if(r.isNew)newAddrs.push(r);
+    });
+    n.svcs.forEach(svc=>{
+      if(seenSvc.has(svc))return;seenSvc.add(svc);
+      const r=resolveSvcPA(svc);
+      if(r.isNew)newSvcs.push(r);
+    });
+  });
+  const paSkippedEmpty=nodes.filter(n=>
+    !n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0]))||
+    !n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0]))
+  ).length;
+  if(paSkippedEmpty>0)lines.push(`# ${paSkippedEmpty} règle(s) ignorée(s) — source ou destination vide`);
+  lines.push(`# FireAPG v0.19 — Palo Alto CLI — Source policy: ${polName}`);
+  lines.push(`# ${nodes.length} rule(s) — ${ts}${disableRules?' — rules disabled':''}`);
+  lines.push(`# from-zone: ${fromZone}  to-zone: ${toZone}`);
+  if(hasObjDb)lines.push(`# Object DB loaded — matched existing objects by name`);
+  lines.push('');
+  if(newAddrs.length){
+    lines.push(`# === NEW ADDRESS OBJECTS (${newAddrs.length}) ===`);
+    newAddrs.forEach(r=>lines.push(`set address "${r.name}" ip-netmask ${r.cidr}`));
+    lines.push('');
+  }
+  if(newSvcs.length){
+    lines.push(`# === NEW SERVICE OBJECTS (${newSvcs.length}) ===`);
+    newSvcs.forEach(r=>lines.push(`set service "${r.name}" protocol ${r.proto} port ${r.port}`));
+    lines.push('');
+  }
+  if(newAddrs.length||newSvcs.length)lines.push(`# === SECURITY RULES ===`);
+  nodes.forEach((n,i)=>{
+    const nSig=nodeSig(n);
+    if(includeTreated&&S.treated.has(nSig)){
+      const note=S.treatedNotes.get(nSig)||'';
+      lines.push(`# [TRAITÉ]${note?' Note: "'+note+'"':''}`);
+    }
+    const polId=S.selPol||'0';
+    const rname=`${prefix}-ID${polId}-${String(i+1).padStart(3,'0')}`;
+    const effDsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    const srcNames=[...new Set(n.srcs.map(c=>resolveAddrPA(c,n.isV6).name))];
+    const dstNames=[...new Set(effDsts.map(c=>resolveAddrPA(c,n.isV6).name))];
+    const svcResolved=[...new Map(n.svcs.map(s=>{const r=resolveSvcPA(s);return[r.name,r];})).values()];
+    const svcStr=svcResolved.length===1&&svcResolved[0].name==='application-default'
+      ?'application-default'
+      :`[ ${svcResolved.map(r=>r.name).join(' ')} ]`;
+    // Multi-intf support for merged nodes
+    const srcIntfArrPA=n.srcintfs||[n.srcintf].filter(Boolean);
+    const dstIntfArrPA=n.dstintfs||[n.dstintf].filter(Boolean);
+    const deupIntf=arr=>[...new Set(arr.map(i=>zoneForIntf(i)||i))];
+    const srcZonesPA=deupIntf(srcIntfArrPA);
+    const dstZonesPA=deupIntf(dstIntfArrPA);
+    const fromStr=srcZonesPA.length>1?`[ ${srcZonesPA.join(' ')} ]`:srcZonesPA[0]||fromZone;
+    const toStr=dstZonesPA.length>1?`[ ${dstZonesPA.join(' ')} ]`:dstZonesPA[0]||toZone;
+    lines.push(`set rulebase security rules "${rname}" from ${fromStr} to ${toStr} source [ ${srcNames.map(s=>`"${s}"`).join(' ')} ] destination [ ${dstNames.map(d=>`"${d}"`).join(' ')} ] action allow application any service ${svcStr}`);
+    if(disableRules)lines.push(`set rulebase security rules "${rname}" disabled yes`);
+    lines.push('');
+  });
+  lines.push(`# commit`);
+  return lines.join('\n');
+}
+
+function genCSV(nodes,includeTreated){
+  const hasAddr=Object.keys(S.objDb.forti.addrIndex||{}).length>0||Object.keys(S.objDb.pa.addrIndex||{}).length>0;
+  const hasSvc=Object.keys(S.objDb.forti.svcIndex||{}).length>0||Object.keys(S.objDb.pa.svcIndex||{}).length>0;
+  const hasZone=S.fileSource==='pa'||Object.keys(S.objDb.forti.zone||{}).length>0;
+  const hdr=['Rule#','Statut','Note','Type','No-Return','SRC Interface'];
+  if(hasZone)hdr.push('SRC Zone');
+  hdr.push('DST Interface');
+  if(hasZone)hdr.push('DST Zone');
+  if(hasAddr)hdr.push('Source CIDR(s)','Source Name(s)','Destination CIDR(s)','Destination Name(s)');
+  else hdr.push('Source CIDR(s)','Destination CIDR(s)');
+  if(hasSvc)hdr.push('Services','Service Name(s)');
+  else hdr.push('Services');
+  hdr.push('Flows','Perm.','Level');
+  const rows=[hdr];
+  nodes.forEach((n,i)=>{
+    const lv=n.perm<=10?'Surgical':n.perm<=35?'Precise':n.perm<=65?'Balanced':n.perm<=80?'Broad':'Very Broad';
+    const dsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    const rSig=nodeSig(n);
+    const rTreated=S.treated.has(rSig);
+    const rNote=S.treatedNotes.get(rSig)||'';
+    const domFaceSrc=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.srcface)m[f.srcface]=(m[f.srcface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.srcintf;})():n.srcintf;
+    const domFaceDst=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.dstface)m[f.dstface]=(m[f.dstface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.dstintf;})():n.dstintf;
+    const row=[i+1,rTreated?'TRAITÉ':'',rNote,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',domFaceSrc];
+    if(hasZone)row.push(S.fileSource==='pa'?n.srcintf:zoneForIntf(n.srcintf));
+    row.push(domFaceDst);
+    if(hasZone)row.push(S.fileSource==='pa'?n.dstintf:zoneForIntf(n.dstintf));
+    if(hasAddr){row.push(n.srcs.join(' | '));row.push(n.srcs.map(c=>lookupObjName(c,n.isV6)||'').join(' | '));row.push(dsts.join(' | '));row.push(dsts.map(c=>lookupObjName(c,n.isV6)||'').join(' | '));}
+    else{row.push(n.srcs.join(' | '));row.push(dsts.join(' | '));}
+    if(hasSvc){row.push(n.svcs.map(svcKeyLabel).join(' | '));row.push(n.svcs.map(s=>lookupSvcName(s)||'').join(' | '));}
+    else{row.push(n.svcs.map(svcKeyLabel).join(' | '));}
+    row.push(n.hits,n.perm,lv);
+    rows.push(row);
+  });
+  return rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+function doExcel(nodes,pol,includeTreated){
+  const hasAddr=Object.keys(S.objDb.forti.addrIndex||{}).length>0||Object.keys(S.objDb.pa.addrIndex||{}).length>0;
+  const hasSvc=Object.keys(S.objDb.forti.svcIndex||{}).length>0||Object.keys(S.objDb.pa.svcIndex||{}).length>0;
+  const hasZone=S.fileSource==='pa'||Object.keys(S.objDb.forti.zone||{}).length>0;
+  const hdr=['Rule#','Statut','Note','Type','No-Return','SRC Interface'];
+  if(hasZone)hdr.push('SRC Zone');
+  hdr.push('DST Interface');
+  if(hasZone)hdr.push('DST Zone');
+  if(hasAddr)hdr.push('Source CIDR(s)','Source Name(s)','Destination CIDR(s)','Destination Name(s)');
+  else hdr.push('Source CIDR(s)','Destination CIDR(s)');
+  if(hasSvc)hdr.push('Services','Service Name(s)');
+  else hdr.push('Services');
+  hdr.push('Flows','Perm.','Level','Source');
+  const rows=[hdr];
+  nodes.forEach((n,i)=>{
+    const lv=n.perm<=10?'Surgical':n.perm<=35?'Precise':n.perm<=65?'Balanced':n.perm<=80?'Broad':'Very Broad';
+    const dsts=n.dsts.filter(d=>!S.nrExcludedDsts.has(d.split('/')[0]));
+    const rSig=nodeSig(n);
+    const rTreated=S.treated.has(rSig);
+    const rNote=S.treatedNotes.get(rSig)||'';
+    const domFaceSrc=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.srcface)m[f.srcface]=(m[f.srcface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.srcintf;})():n.srcintf;
+    const domFaceDst=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.dstface)m[f.dstface]=(m[f.dstface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.dstintf;})():n.dstintf;
+    const row=[i+1,rTreated?'TRAITÉ':'',rNote,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',domFaceSrc];
+    if(hasZone)row.push(S.fileSource==='pa'?n.srcintf:zoneForIntf(n.srcintf));
+    row.push(domFaceDst);
+    if(hasZone)row.push(S.fileSource==='pa'?n.dstintf:zoneForIntf(n.dstintf));
+    if(hasAddr){row.push(n.srcs.join(', '));row.push(n.srcs.map(c=>lookupObjName(c,n.isV6)||'').join(', '));row.push(dsts.join(', '));row.push(dsts.map(c=>lookupObjName(c,n.isV6)||'').join(', '));}
+    else{row.push(n.srcs.join(', '));row.push(dsts.join(', '));}
+    if(hasSvc){row.push(n.svcs.map(svcKeyLabel).join(', '));row.push(n.svcs.map(s=>lookupSvcName(s)||'').join(', '));}
+    else{row.push(n.svcs.map(svcKeyLabel).join(', '));}
+    row.push(n.hits,n.perm,lv,S.fileSource.toUpperCase());
+    rows.push(row);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Style treated rows: grey fill + strikethrough font (SheetJS Pro only, silently ignored otherwise)
+  try{
+    const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+    for(let R=1;R<=range.e.r;R++){
+      const statCell=ws[XLSX.utils.encode_cell({r:R,c:1})];
+      if(statCell&&statCell.v==='TRAITÉ'){
+        for(let C=range.s.c;C<=range.e.c;C++){
+          const addr=XLSX.utils.encode_cell({r:R,c:C});
+          if(!ws[addr])ws[addr]={t:'z',v:''};
+          if(!ws[addr].s)ws[addr].s={};
+          ws[addr].s.fill={patternType:'solid',fgColor:{rgb:'D9D9D9'}};
+          ws[addr].s.font={...(ws[addr].s.font||{}),strike:true,color:{rgb:'888888'}};
+        }
+      }
+    }
+  }catch(e){}
+  // Dynamic column widths
+  const zCols=hasZone?2:0;
+  const oCols=hasObj?6:3;
+  const baseCols=[{wch:5},{wch:5},{wch:9},{wch:14}];
+  if(hasZone)baseCols.push({wch:14});
+  baseCols.push({wch:14});
+  if(hasZone)baseCols.push({wch:14});
+  if(hasObj)baseCols.push({wch:24},{wch:20},{wch:24},{wch:20},{wch:20},{wch:20});
+  else baseCols.push({wch:28},{wch:36},{wch:28});
+  baseCols.push({wch:6},{wch:5},{wch:10},{wch:8});
+  ws['!cols']=baseCols;
+  XLSX.utils.book_append_sheet(wb,ws,'FireAPG Rules');
+  if(S.flows.length){
+    const frows=[['SRC IP','DST IP','Proto','Port','Service','SRC Intf','DST Intf','Country','Sent (B)','Rcvd (B)','No-Return']];
+    dedup(S.flows).forEach(f=>frows.push([f.srcip,f.dstip,f.proto,f.port,fmtSvcPlain(f.svcKey),f.srcintf,f.dstintf,f.dstcountry,f.sentbyte,f.rcvdbyte,f.noReturn?'YES':'']));
+    const ws2=XLSX.utils.aoa_to_sheet(frows);
+    XLSX.utils.book_append_sheet(wb,ws2,'Raw Flows');
+    const nrFlows=dedup(S.flows).filter(f=>f.noReturn);
+    if(nrFlows.length){
+      const nrrows=[['SRC IP','DST IP','Proto','Port','Service','SRC Intf','DST Intf','Sent (B)']];
+      nrFlows.forEach(f=>nrrows.push([f.srcip,f.dstip,f.proto,f.port,fmtSvcPlain(f.svcKey),f.srcintf,f.dstintf,f.sentbyte]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(nrrows),'No-Return Flows');
+    }
+  }
+  XLSX.writeFile(wb,`FireAPG_${(pol?.name||'policy').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function openHub(){
+  document.getElementById('expp').classList.remove('open');
+  document.getElementById('hubp').classList.add('open');
+  refreshHub();
+}
+function refreshHub(){
+  if(!S.tree)return;
+  const sel=getSelected(S.tree);
+  const fortiTreated=document.getElementById('b-forti-treated')?.dataset.on==='1';
+  const paTreated=document.getElementById('b-pa-treated')?.dataset.on==='1';
+  const csvTreated=document.getElementById('b-csv-treated')?.dataset.on==='1';
+  // Base nodes: selected or all active
+  const allActive=getAllActive(S.tree);
+  const baseNodes=sel.length>0?sel:allActive;
+  // Export nodes: filter treated unless toggle on
+  // Helper: node has at least one valid src AND one valid dst (not all excluded)
+  const hasValidNode=n=>
+    (n.srcs.length===0||n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0])))&&
+    (n.dsts.length===0||n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0])));
+  const fortiNodes=baseNodes.filter(n=>(fortiTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+  const paNodes=baseNodes.filter(n=>(paTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+  const csvNodes=baseNodes.filter(n=>(csvTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+  const pol=S.policies[S.selPol];
+  const label=sel.length>0?`${sel.length} selected rule(s)`:`${allActive.length} active rules (none selected)`;
+  document.getElementById('hub-info-hdr').textContent=label;
+  const fortiDisable=document.getElementById('b-forti-disable')?.dataset.on==='1';
+  const paDisable=document.getElementById('b-pa-disable')?.dataset.on==='1';
+  document.getElementById('forti-out').textContent=genFortinet(fortiNodes,pol?.name||'policy',fortiDisable,fortiTreated);
+  document.getElementById('forti-info').textContent=`${fortiNodes.length} rule(s)${fortiTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
+  document.getElementById('pa-out').textContent=genPaloAlto(paNodes,pol?.name||'policy',paDisable,paTreated);
+  document.getElementById('pa-info').textContent=`${paNodes.length} rule(s)${paTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
+  const csv=genCSV(csvNodes,csvTreated);
+  document.getElementById('csv-prev').textContent=csv;
+  document.getElementById('csv-info').textContent=`${csvNodes.length} rows`;
+  document.getElementById('xlsx-info').textContent=`${csvNodes.length} rules + ${dedup(S.flows).length} flows`;
+}
+function switchHubTab(ht){
+  S.hubTab=ht;
+  document.querySelectorAll('.tab[data-ht]').forEach(t=>t.classList.toggle('act',t.dataset.ht===ht));
+  document.querySelectorAll('.tab-pane[data-hp]').forEach(p=>p.classList.toggle('act',p.dataset.hp===ht));
+}
+
+// ================================================================
+// FLOW LENS — drill-down navigation
+// ================================================================
+function openExplorer(){
+  document.getElementById('hubp').classList.remove('open');
+  document.getElementById('expp').classList.add('open');
+  S.expDrill=[];
+  S.expSearch='';
+  const srch=document.getElementById('fl-search');
+  if(srch)srch.value='';
+  renderExplorer();
+}
+
+const FL_DIM_LABELS={src:'Source',dst:'Destination',svc:'Service'};
+const FL_DIM_ICONS={src:'🖥',dst:'🎯',svc:'⚙'};
+
+function renderExplorer(){
+  const drill=S.expDrill;
+  const order=S.expDimOrder;
+  const search=(S.expSearch||'').toLowerCase();
+
+  // Build flows from active tree nodes
+  const seenF=new Set();
+  let flows=getAllActive(S.tree).flatMap(n=>n.flows).filter(f=>{
+    const k=f.srcip+'|'+f.dstip+'|'+f.svcKey;
+    if(seenF.has(k))return false;seenF.add(k);return true;
+  });
+
+  // Apply drill selections
+  for(const step of drill){
+    if(step.dim==='src')flows=flows.filter(f=>f.srcip===step.value);
+    else if(step.dim==='dst')flows=flows.filter(f=>f.dstip===step.value);
+    else if(step.dim==='svc')flows=flows.filter(f=>f.svcKey===step.value);
+  }
+
+  const drilled=new Set(drill.map(d=>d.dim));
+  const remaining=order.filter(d=>!drilled.has(d));
+  const currentDim=remaining[0]||null;
+
+  // Breadcrumb
+  const crumbEl=document.getElementById('fl-breadcrumb');
+  if(drill.length===0){
+    const activeDim0=flows.length>0?remaining[0]:null;
+    crumbEl.innerHTML=order.map(dim=>
+      `<button class="fl-dim-btn${activeDim0===dim?' active':''}" data-dim="${dim}">${FL_DIM_ICONS[dim]} ${FL_DIM_LABELS[dim]}</button>`
+    ).join('');
+    crumbEl.querySelectorAll('.fl-dim-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const d=btn.dataset.dim;
+        S.expDimOrder=[d,...['src','dst','svc'].filter(x=>x!==d)];
+        S.expDrill=[];
+        renderExplorer();
+      });
+    });
+    document.getElementById('exp-sub').textContent=activeDim0?'':'Choose a starting dimension';
+  } else {
+    let crumb=`<span class="fl-crumb" data-di="-1">All</span>`;
+    drill.forEach((step,i)=>{
+      const isLast=i===drill.length-1;
+      crumb+=` <span class="fl-crumb-sep">\u203a</span> <span class="fl-crumb${isLast?' fl-crumb-act':''}" data-di="${i}">${FL_DIM_ICONS[step.dim]} ${step.value}</span>`;
+    });
+    crumbEl.innerHTML=crumb;
+    // Add dim switch tabs when >1 remaining
+    if(remaining.length>1){
+      const tabs=document.createElement('div');
+      tabs.style.cssText='display:flex;gap:4px;margin-left:auto;flex-shrink:0';
+      remaining.forEach(dim=>{
+        const btn=document.createElement('button');
+        btn.className='fl-dim-btn'+(dim===currentDim?' active':'');
+        btn.textContent=FL_DIM_ICONS[dim]+' '+FL_DIM_LABELS[dim];
+        btn.addEventListener('click',()=>{
+          const newOrder=[...order];
+          const rem=newOrder.filter(d=>!drilled.has(d));
+          const firstRemIdx=newOrder.indexOf(rem[0]);
+          const thisIdx=newOrder.indexOf(dim);
+          [newOrder[firstRemIdx],newOrder[thisIdx]]=[newOrder[thisIdx],newOrder[firstRemIdx]];
+          S.expDimOrder=newOrder;
+          renderExplorer();
+        });
+        tabs.appendChild(btn);
+      });
+      crumbEl.appendChild(tabs);
+    }
+    crumbEl.querySelectorAll('[data-di]').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const di=parseInt(el.dataset.di);
+        S.expDrill=di===-1?[]:drill.slice(0,di+1);
+        S.expSearch='';const srch=document.getElementById('fl-search');if(srch)srch.value='';
+        renderExplorer();
+      });
+    });
+    document.getElementById('exp-sub').textContent=drill.map(s=>FL_DIM_LABELS[s.dim]+': '+s.value).join(' \u00b7 ');
+  }
+
+  const body=document.getElementById('exp-body');
+
+  if(!currentDim){
+    body.innerHTML=`<div style="padding:16px;font-size:12px;color:var(--t2);text-align:center"><div style="font-size:20px;margin-bottom:8px">\u2705</div><div>${flows.length} flow(s) match this combination</div></div>`;
+    return;
+  }
+
+  const keyFn=currentDim==='src'?f=>f.srcip:currentDim==='dst'?f=>f.dstip:f=>f.svcKey;
+  const counts={},nrCatMap={},intfMap={},faceMap={};
+  for(const f of flows){
+    const k=keyFn(f);
+    counts[k]=(counts[k]||0)+1;
+    const c=nrCategory(f);
+    if(c){const prev=nrCatMap[k];if(!prev||c==='tcp'||(c==='udp-sus'&&prev==='udp-ok'))nrCatMap[k]=c;}
+    // Track dominant interface/zone for src/dst
+    if(currentDim==='src'||currentDim==='dst'){
+      const intf=currentDim==='src'?f.srcintf:f.dstintf;
+      const face=currentDim==='src'?f.srcface:f.dstface;
+      if(intf){if(!intfMap[k])intfMap[k]={};intfMap[k][intf]=(intfMap[k][intf]||0)+1;}
+      if(face&&f.source==='pa'){if(!faceMap[k])faceMap[k]={};faceMap[k][face]=(faceMap[k][face]||0)+1;}
+    }
+  }
+  let sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(search)sorted=sorted.filter(([k])=>{
+    if(k.toLowerCase().includes(search))return true;
+    // Also match ObjDB name
+    const isIp=currentDim==='src'||currentDim==='dst';
+    const oName=isIp?(lookupObjName(k+'/32',false)||lookupObjName(k+'/128',true)||''):currentDim==='svc'?lookupSvcName(k)||'':'';
+    return oName.toLowerCase().includes(search);
+  });
+
+  if(!sorted.length){body.innerHTML='<div style="font-size:12px;color:var(--t3);text-align:center;padding:24px">No results</div>';return;}
+
+  const canDrill=remaining.length>1;
+  body.innerHTML=sorted.map(([k,cnt])=>{
+    const c=nrCatMap[k];
+    const nrTag=c==='tcp'?`<span class="fl-nr" style="background:var(--rdl);color:var(--rd);border-color:var(--rd)">🔴 NR-TCP</span>`:
+                c==='udp-sus'?`<span class="fl-nr" style="background:var(--nrl);color:var(--nr);border-color:var(--nr)">🟠 NR-UDP?</span>`:
+                c==='udp-ok'?`<span class="fl-nr" style="background:var(--ywl);color:var(--yw);border-color:var(--yw)">🟡 NR-UDP</span>`:'';
+    const arrow=canDrill?'<span class="fl-arrow">\u203a</span>':'<span class="fl-arrow" style="cursor:default;opacity:.3">\u25ce</span>';
+    const isIp=currentDim==='src'||currentDim==='dst';
+    // Label: for IPs use ObjDB name, for svc use fmtSvcHtml (handles svcKey format)
+    let labelHtml;
+    if(currentDim==='svc'){
+      labelHtml=fmtSvcHtml(k);
+    } else {
+      const objName=lookupObjName(k+'/32',false)||lookupObjName(k+'/128',true);
+      labelHtml=objName?`${objName}<span class="obj-name-lbl">(${k})</span>`:k;
+    }
+    // Dominant intf/zone for src/dst
+    let intfHtml='';
+    if(isIp&&intfMap[k]){
+      const dom=Object.entries(intfMap[k]).sort((a,b)=>b[1]-a[1])[0][0];
+      if(faceMap[k]){
+        // PA: dom = zone, face = physical interface
+        const domFace=Object.entries(faceMap[k]).sort((a,b)=>b[1]-a[1])[0][0];
+        intfHtml=`<span style="font-size:10px;color:var(--t3);margin-left:6px;font-family:'JetBrains Mono',monospace">${dom}${domFace?' ('+domFace+')':''}</span>`;
+      } else {
+        // FG: dom = interface, lookup zone from ObjDB
+        const z=zoneForIntf(dom);
+        intfHtml=`<span style="font-size:10px;color:var(--t3);margin-left:6px;font-family:'JetBrains Mono',monospace">${z?z+' ('+dom+')':dom}</span>`;
+      }
+    }
+    const kEsc=k.replace(/"/g,'&quot;');
+    return`<div class="fl-entry${currentDim==='svc'?' fl-svc-entry':''}" data-k="${kEsc}" data-dim="${currentDim}">${nrTag}<span class="fl-label">${labelHtml}${intfHtml}</span><span class="fl-count">${cnt.toLocaleString('fr-FR')} fl.</span>${arrow}</div>`;
+  }).join('');
+
+  body.querySelectorAll('.fl-entry').forEach(el=>el.addEventListener('click',()=>{
+    const k=el.dataset.k,dim=el.dataset.dim;
+    if(canDrill){
+      S.expDrill=[...drill,{dim,value:k}];
+      S.expSearch='';const srch=document.getElementById('fl-search');if(srch)srch.value='';
+      renderExplorer();
+    } else {
+      // Final level click — find src/dst/svc from drill+current regardless of order
+      const allSteps=[...drill,{dim,value:k}];
+      const srcStep=allSteps.find(d=>d.dim==='src');
+      const dstStep=allSteps.find(d=>d.dim==='dst');
+      const svcStep=allSteps.find(d=>d.dim==='svc');
+      if(srcStep&&dstStep&&svcStep){
+        highlightTreeNode(srcStep.value,dstStep.value,svcStep.value);
+      } else if(srcStep&&dstStep){
+        // src+dst known, no svc filter
+        highlightTreeNode(srcStep.value,dstStep.value,null);
+      }
+    }
+  }));
+  // FL NR badges are display-only (no tooltip in FL)
+}
+
+function highlightTreeNode(srcip,dst,svcName){
+  // Find the node in the tree that covers this src+dst+svc combination
+  if(!S.tree||!srcip||!dst)return;
+
+  // Find all active nodes covering this flow
+  const active=getAllActive(S.tree);
+  let bestNode=null;
+  for(const n of active){
+    const coversSrc=n.srcs.some(s=>{const r=cidr2range(s);if(!r)return false;const ip=ip4int(srcip);return ip!==null&&ip>=r.start&&ip<=r.end;})||n.srcs.some(s=>s.startsWith(srcip));
+    const coversDst=n.dsts.some(s=>{const r=cidr2range(s);if(!r)return false;const ip=ip4int(dst);return ip!==null&&ip>=r.start&&ip<=r.end;})||n.dsts.some(s=>s.startsWith(dst));
+    const coversSvc=!svcName||n.svcs.includes(svcName)||n.svcs.length===0;
+    if(coversSrc&&coversDst&&coversSvc){bestNode=n;break;}
+  }
+  if(!bestNode)bestNode=active.find(n=>n.flows.some(f=>f.srcip===srcip&&f.dstip===dst&&(!svcName||f.svcKey===svcName)));
+
+  if(!bestNode){
+    // Node might be collapsed — try to expand to find it
+    setStatus(`Flow ${srcip}→${dst} [${svcName}] — expanding tree to locate…`);
+    // Expand all and retry
+    function ea(ns){for(const n of ns){if(n.children.length){n.expanded=true;n.active=false;n.manualOverride=true;ea(n.children);}else n.active=true;}}
+    ea(S.tree);renderTree();updateUI();
+    // Retry after render
+    setTimeout(()=>highlightTreeNode(srcip,dst,svcName),100);
+    return;
+  }
+
+  S._highlightId=bestNode.id;
+  renderTree();
+
+  // Scroll to node
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-nid="${bestNode.id}"]`);
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      // Force re-add class for animation restart
+      const tr=el.querySelector('.tr');
+      if(tr){tr.classList.remove('fl-highlight');void tr.offsetWidth;tr.classList.add('fl-highlight');}
+    }
+    // Clear highlight after animation
+    setTimeout(()=>{S._highlightId=null;renderTree();},2200);
+  },50);
+  setStatus(`Highlighted: ${srcip} → ${dst} [${svcName}]`,true);
+}
+
+// ================================================================
+// POLICY SEARCH LIST
+// ================================================================
+// ================================================================
+// MERGE SELECTED NODES
+// ================================================================
+function mergeSelectedNodes(){
+  if(!S.tree)return;
+  const sel=getSelected(S.tree);
+  if(sel.length<2){setStatus('Select at least 2 rules to merge');return;}
+
+  // Union of all srcs, dsts, svcs — fully deduplicated
+  const allSrcs=[...new Set(sel.flatMap(n=>n.srcs))];
+  const allDsts=[...new Set(sel.flatMap(n=>n.dsts))];
+  const allSvcs=[...new Set(sel.flatMap(n=>n.svcs))].sort();
+  // Also deduplicate children that are identical (same srcs+dsts+svcs)
+  // srcs/dsts/svcs already deduped by Set above
+
+  // Aggregate only network CIDRs (not /32 or /128 hosts — keep those distinct)
+  function minCidrList(cidrs,isV6){
+    const hostPfx=isV6?128:32;
+    const hosts=cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)===hostPfx);
+    const nets =cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)!==hostPfx);
+    let aggNets=nets;
+    if(nets.length>1){
+      const ips=nets.map(c=>c.split('/')[0]);
+      const res=isV6?minCidr6(ips):minCidr4(ips);
+      if(res)aggNets=[res.cidr];
+    }
+    return[...new Set([...aggNets,...hosts])];
+  }
+  const isV6=sel.some(n=>n.isV6);
+  const mergedSrcs=minCidrList(allSrcs,isV6);
+  const mergedDsts=minCidrList(allDsts,isV6);
+
+  // Collect ALL unique srcintfs and dstintfs (preserve all, not just dominant)
+  const srcIntfSet=new Set(),dstIntfSet=new Set();
+  sel.forEach(n=>{
+    // Support both old single-intf and new multi-intf nodes
+    const sIntfs=n.srcintfs||[n.srcintf].filter(Boolean);
+    const dIntfs=n.dstintfs||[n.dstintf].filter(Boolean);
+    sIntfs.forEach(i=>srcIntfSet.add(i));
+    dIntfs.forEach(i=>dstIntfSet.add(i));
+  });
+  const srcintfs=[...srcIntfSet];
+  const dstintfs=[...dstIntfSet];
+  // Keep srcintf/dstintf for backward compat (first in list)
+  const srcintf=srcintfs[0]||'';
+  const dstintf=dstintfs[0]||'';
+
+  // Merged flows (dedup)
+  const seenF=new Set();
+  const mergedFlows=sel.flatMap(n=>n.flows).filter(f=>{
+    const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;
+    if(seenF.has(k))return false;seenF.add(k);return true;
+  });
+
+  const mergedNode=makeNode(
+    `merged_${Date.now()}`,mergedSrcs,mergedDsts,allSvcs,
+    srcintf,dstintf,mergedFlows,isV6,[]
+  );
+  // Ensure final deduplication of srcs/dsts/svcs/intfs on merged node
+  mergedNode.srcs=[...new Set(mergedNode.srcs)];
+  mergedNode.dsts=[...new Set(mergedNode.dsts)];
+  mergedNode.svcs=[...new Set(mergedNode.svcs)].sort();
+  mergedNode.selected=true;
+  mergedNode.isMerged=true;
+  mergedNode.srcintfs=[...new Set(srcintfs)];
+  mergedNode.dstintfs=[...new Set(dstintfs)];
+  mergedNode.mergedFrom=sel.map(n=>({...n})); // shallow copy for unmerge
+
+  // Remove selected nodes from tree and insert merged node
+  function removeNodes(ns,ids){
+    const out=[];
+    for(const n of ns){
+      if(ids.has(n.id)){continue;}
+      n.children=removeNodes(n.children,ids);
+      out.push(n);
+    }
+    return out;
+  }
+  const selIds=new Set(sel.map(n=>n.id));
+  // Find insertion point: first selected node's position in root or its parent
+  // Simplest: insert merged node at root level after removing originals
+  S.tree=removeNodes(S.tree,selIds);
+  S.tree.unshift(mergedNode); // put merged at top
+  setStatus(`Merged ${sel.length} rules into 1 (perm: ${mergedNode.perm}/100)`,true);
+  renderTree();updateUI();
+}
+
+function unmergeNode(nodeId){
+  if(!S.tree)return;
+  function findAndReplace(ns){
+    for(let i=0;i<ns.length;i++){
+      if(ns[i].id===nodeId&&ns[i].isMerged){
+        const originals=ns[i].mergedFrom;
+        ns.splice(i,1,...originals);
+        return true;
+      }
+      if(findAndReplace(ns[i].children))return true;
+    }
+    return false;
+  }
+  findAndReplace(S.tree);
+  setStatus('Merge undone — original rules restored',true);
+  renderTree();updateUI();
+}
+
+function renderPolList(query=''){
+  const list=document.getElementById('pol-list');
+  const input=document.getElementById('pol-search');
+  const pols=Object.entries(S.policies);
+  if(!pols.length){list.innerHTML='<div class="pol-none">No policies loaded</div>';list.style.display='block';return;}
+  const q=query.toLowerCase().trim().replace(/^id/,'');
+  const filtered=q?pols.filter(([id,p])=>p.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)):pols;
+  if(!filtered.length){list.innerHTML='<div class="pol-none">No match</div>';list.style.display='block';return;}
+  list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);margin-right:5px">ID${id}</span>${p.name}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length.toLocaleString('fr-FR')} fl.</span></div>`).join('');
+  list.querySelectorAll('.pol-item').forEach(el=>el.addEventListener('click',()=>{
+    const pid=el.dataset.pid;
+    input.value=`ID${pid} — ${S.policies[pid]?.name||pid}`;
+    list.style.display='none';
+    loadPolicy(pid);
+  }));
+  list.style.display='block';
+}
+
+// ================================================================
+// POLICY LOAD
+// ================================================================
+function loadPolicy(pid){
+  S.selPol=pid;
+  const pol=S.policies[pid];if(!pol)return;
+  // Update search input display
+  const si=document.getElementById('pol-search');
+  if(si){si.value=`ID${pid} — ${pol.name}`;const pc=document.getElementById('pol-clear');if(pc)pc.style.display='block';}
+  setLoad(true,'Building tree…');
+  S.nrExcludedDsts=new Set(); // reset per-IP exclusions on new policy load
+  setTimeout(()=>{
+    S.flows=pol.flows;
+    document.getElementById('h-flows').textContent=S.flows.length;
+    document.getElementById('h-nr').textContent=S.flows.filter(f=>f.noReturn).length;
+    const all=dedup(S.flows);
+    document.getElementById('t-src').textContent=[...new Set(all.map(f=>f.srcip))].length;
+    document.getElementById('t-dst').textContent=[...new Set(all.map(f=>f.dstip))].length;
+    document.getElementById('t-svc').textContent=[...new Set(all.map(f=>f.svcKey))].length;
+    document.getElementById('t-tot').textContent=all.length;
+    const flows=activeFlows();
+    S.tree=buildTree(flows);S.curve=computeCurve(S.tree);S.optimalPerm=null;
+    resetOvr(S.tree);
+    genInsights(S.flows,S.tree);
+    renderGraph(S.curve,S.perm);renderTree();
+    document.getElementById('b-exp-open').disabled=false;
+    document.getElementById('b-optimize').disabled=false;
+    setPerm(80);setLoad(false);
+    setStatus(`"${pol.name}" — ${all.length} unique flows analyzed`,true);
+    updateUI();
+  },80);
+}
+
+// ================================================================
+// FILE LOAD
+// ================================================================
+function loadFile(file){
+  setLoad(true,'Reading file…');
+  const r=new FileReader();
+  r.onload=e=>{
+    const text=e.target.result;
+    setLoad(true,'Detecting format…');
+    setTimeout(()=>{
+      const fmt=detectFormat(text);S.fileSource=fmt;
+      setLoad(true,`Parsing ${fmt==='pa'?'Palo Alto CSV':'FortiGate'} logs…`);
+      setTimeout(()=>{
+        S.policies=parseFile(text,fmt);
+        // Enable and populate policy search
+        const polSrch=document.getElementById('pol-search');
+        polSrch.disabled=false;
+        polSrch.placeholder='Search policy…';
+        polSrch.value='';
+        renderPolList('');
+        const tot=Object.values(S.policies).reduce((a,p)=>a+p.flows.length,0);
+        // Auto-select if only one policy
+        const pids=Object.keys(S.policies);
+        if(pids.length===1){
+          document.getElementById('pol-list').style.display='none';
+          loadPolicy(pids[0]);
+        }
+        const fi=document.getElementById('finfo');fi.style.display='block';
+        fi.textContent=`✓ ${file.name} [${fmt.toUpperCase()}] · ${Object.keys(S.policies).length} policies · ${tot} flows`;
+        document.getElementById('uz').style.borderColor='var(--gr)';
+        const badge=document.getElementById('src-badge-hdr');
+        badge.textContent=fmt==='pa'?'PA':'Forti';
+        badge.className=`src-badge ${fmt==='pa'?'src-pa':'src-forti'}`;
+        badge.style.display='inline';
+        // Show clear all + CLI commands
+        document.getElementById('btn-clear-all').classList.add('visible');
+        document.getElementById('objdb-cmd-section').style.display='block';
+        // Show obj-db dropzone now that we know the vendor
+        const isPA=fmt==='pa';
+        const hint=document.getElementById('objdb-hint');
+        const dz=document.getElementById('objdb-main-dz');
+        const dzLabel=document.getElementById('objdb-dz-label');
+        hint.textContent=isPA
+          ?'Upload a Palo Alto CLI dump: show address · show service'
+          :'Upload a FortiGate CLI dump: show firewall address · address6 · service custom';
+        dzLabel.innerHTML=`<strong>Drop</strong> or click — ${isPA?'PA':'FortiGate'} CLI config`;
+        dz.style.display='block';
+        setLoad(false);setStatus(`${tot} logs loaded [${fmt.toUpperCase()}] — Select a policy`,true);
+      },80);
+    },30);
+  };
+  r.readAsText(file);
+}
+
+// ================================================================
+// INIT
+// ================================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  // Clear All button
+  document.getElementById('btn-clear-all').addEventListener('click',()=>{
+    // Reset full state
+    S.policies={};S.selPol=null;S.flows=[];S.tree=null;S.perm=80;
+    S.curve={pts:[],nat:[]};S.optimalPerm=null;
+    S.anchorMode='auto';S.fixSrc=false;S.fixDst=false;
+    S.nrMode='none';S.nrExcludedDsts=new Set();
+    S.treated=new Set();S.treatedNotes=new Map();
+    S.nrExcludedSrcs=new Set();
+    S.fileSource=null;S.expDrill=[];S.expSearch='';
+    S.objDb={forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}};
+    S._highlightId=null;
+    // Reset UI elements
+    document.getElementById('finfo').style.display='none';
+    document.getElementById('finfo').textContent='';
+    document.getElementById('pa-multi-dev').style.display='none';
+    document.getElementById('uz').style.borderColor='';
+    document.getElementById('fi').value='';
+    document.getElementById('objdb-main-fi').value='';
+    document.getElementById('pol-search').value='';
+    document.getElementById('pol-search').disabled=true;
+    document.getElementById('pol-search').placeholder='— Import a log file first —';
+    document.getElementById('pol-list').innerHTML='<div class="pol-none">No policies loaded</div>';
+    document.getElementById('pol-list').style.display='none';
+    document.getElementById('src-badge-hdr').style.display='none';
+    document.getElementById('b-exp-open').disabled=true;
+    document.getElementById('b-optimize').disabled=true;
+    document.getElementById('b-hub-trigger').disabled=true;
+    document.getElementById('objdb-main-badge').textContent='Not loaded';
+    document.getElementById('objdb-main-badge').classList.add('empty');
+    document.getElementById('objdb-clear-btn').style.display='none';
+    document.getElementById('objdb-main-dz').style.display='none';
+    document.getElementById('objdb-cmd-section').style.display='none';
+    document.getElementById('objdb-hint').textContent='Load a log file first to detect the vendor format.';
+    // Reset header stats
+    ['h-flows','h-rules','h-perm','h-nr'].forEach(id=>document.getElementById(id).textContent='—');
+    ['t-src','t-dst','t-svc','t-tot'].forEach(id=>document.getElementById(id).textContent='—');
+    // Reset tree, graph, insights
+    document.getElementById('tree-c').innerHTML='<div class="es"><div class="es-icon">🌲</div><div class="es-title">No data</div><div class="es-sub">Select a policy to analyze.</div></div>';
+    document.getElementById('il').innerHTML='';
+    document.getElementById('agg-info').style.display='none';
+    // Reset anchor mode UI
+    document.getElementById('anc-fix-src').checked=false;
+    document.getElementById('anc-fix-dst').checked=false;
+    document.getElementById('anc-auto-lbl').style.display='inline';
+    document.getElementById('anc-row-src').classList.remove('active');
+    document.getElementById('anc-row-dst').classList.remove('active');
+    // Reset NR mode
+    S.nrMode='none';
+    document.querySelectorAll('.nr-mode-btn').forEach(b=>b.classList.toggle('act',b.dataset.nrm==='none'));
+    document.getElementById('btn-clear-all').classList.remove('visible');
+    renderGraph({pts:[],nat:[]},80);
+    setPerm(80);
+    setStatus('Idle — Import a log file');
+  });
+
+  // Log file upload
+  const fi=document.getElementById('fi'),uz=document.getElementById('uz');
+  fi.addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0]);});
+  uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('over');});
+  uz.addEventListener('dragleave',()=>uz.classList.remove('over'));
+  uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0]);});
+
+  // Policy search
+  const polSearch=document.getElementById('pol-search');
+  const polList=document.getElementById('pol-list');
+  const polClear=document.getElementById('pol-clear');
+  function updatePolClear(){if(polClear)polClear.style.display=polSearch.value?'block':'none';}
+  polSearch.addEventListener('input',()=>{renderPolList(polSearch.value);updatePolClear();});
+  polSearch.addEventListener('focus',()=>renderPolList(polSearch.value));
+  if(polClear){
+    polClear.addEventListener('mousedown',e=>{
+      e.preventDefault(); // don't blur the input
+      polSearch.value='';
+      polClear.style.display='none';
+      renderPolList('');
+      polSearch.focus();
+    });
+  }
+  document.addEventListener('click',e=>{if(!e.target.closest('.lp-section'))polList.style.display='none';});
+
+  // Slider
+  document.getElementById('pslider').addEventListener('input',function(){setPerm(100-parseInt(this.value));});
+
+  // Anchor toggles
+  document.getElementById('anc-fix-src').addEventListener('change',updateAnchorMode);
+  document.getElementById('anc-fix-dst').addEventListener('change',updateAnchorMode);
+
+  // No-return mode buttons
+  document.querySelectorAll('.nr-mode-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    S.nrMode=btn.dataset.nrm;
+    document.querySelectorAll('.nr-mode-btn').forEach(b=>b.classList.toggle('act',b.dataset.nrm===S.nrMode));
+    if(S.selPol){
+      const flows=activeFlows();S.tree=buildTree(flows);S.curve=computeCurve(S.tree);
+      S.optimalPerm=null;resetOvr(S.tree);applyPerm(S.tree,S.perm);
+      renderGraph(S.curve,S.perm);renderTree();updateUI();
+    }
+  }));
+
+  // Flow Lens
+  document.getElementById('b-exp-open').addEventListener('click',()=>{
+    S.expDrill=[];S.expSearch='';
+    document.getElementById('hubp').classList.remove('open');
+    document.getElementById('expp').classList.add('open');
+    const srch=document.getElementById('fl-search');if(srch)srch.value='';
+    renderExplorer();
+  });
+  document.getElementById('b-expclose').addEventListener('click',()=>{
+    document.getElementById('expp').classList.remove('open');
+    S.expDrill=[];S.expSearch='';
+  });
+
+  // Flow Lens search
+  document.addEventListener('input',e=>{
+    if(e.target.id==='fl-search'){S.expSearch=e.target.value;renderExplorer();}
+  });
+
+  // Tree actions
+  document.getElementById('b-exp').addEventListener('click',()=>{
+    if(!S.tree)return;
+    function ea(ns){for(const n of ns){if(n.children.length){n.expanded=true;n.active=false;n.manualOverride=true;ea(n.children);}else n.active=true;}}
+    ea(S.tree);renderTree();updateUI();
+  });
+  document.getElementById('b-col').addEventListener('click',()=>{
+    if(!S.tree)return;
+    resetOvr(S.tree);applyPerm(S.tree,S.perm);renderTree();updateUI();
+  });
+  document.getElementById('b-sa').addEventListener('click',()=>{if(!S.tree)return;function sa(ns){for(const n of ns){if(n.active&&!n.expanded)n.selected=true;if(n.expanded)sa(n.children);}}sa(S.tree);renderTree();updateUI();});
+  document.getElementById('b-ua').addEventListener('click',()=>{if(!S.tree)return;function ua(ns){for(const n of ns){n.selected=false;ua(n.children);}}ua(S.tree);renderTree();updateUI();});
+  document.getElementById('b-merge').addEventListener('click',()=>mergeSelectedNodes());
+
+  // ── TREAT button ──────────────────────────────────────────────
+  document.getElementById('b-treat').addEventListener('click',()=>{
+    const sel=getSelected(S.tree);
+    if(!sel.length)return;
+    // Show note popup
+    const popup=document.getElementById('note-popup');
+    const input=document.getElementById('note-input');
+    input.value='';
+    // Position near treat button
+    const btn=document.getElementById('b-treat');
+    const rect=btn.getBoundingClientRect();
+    popup.style.top=(rect.bottom+6)+'px';
+    popup.style.left=Math.max(8,rect.left-140)+'px';
+    popup.style.display='block';
+    input.focus();
+    // Store pending sigs
+    popup._pendingSigs=sel.map(n=>nodeSig(n));
+  });
+
+  document.getElementById('note-cancel').addEventListener('click',()=>{
+    document.getElementById('note-popup').style.display='none';
+  });
+
+  document.getElementById('note-confirm').addEventListener('click',()=>{
+    const popup=document.getElementById('note-popup');
+    const note=document.getElementById('note-input').value.trim();
+    const sigs=popup._pendingSigs||[];
+    sigs.forEach(sig=>{
+      S.treated.add(sig);
+      if(note)S.treatedNotes.set(sig,note);
+      else S.treatedNotes.delete(sig);
+    });
+    popup.style.display='none';
+    renderTree();updateUI();
+    if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+    setStatus(`${sigs.length} règle(s) marquée(s) comme traitée(s)`,true);
+  });
+
+  // Enter key in note input confirms
+  document.getElementById('note-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter')document.getElementById('note-confirm').click();
+    if(e.key==='Escape')document.getElementById('note-cancel').click();
+  });
+
+  // Click outside popup closes it
+  document.addEventListener('click',e=>{
+    const popup=document.getElementById('note-popup');
+    if(popup.style.display!=='none'&&!popup.contains(e.target)&&e.target.id!=='b-treat'){
+      popup.style.display='none';
+    }
+  });
+
+  // ── UNTREAT + RESTORE clicks (delegated on tree-c) ────────────
+  document.getElementById('tree-c').addEventListener('click',e=>{
+    // Untreat
+    const untreatSig=e.target.closest('[data-untreat]')?.dataset.untreat;
+    if(untreatSig){
+      e.stopPropagation();
+      S.treated.delete(untreatSig);
+      S.treatedNotes.delete(untreatSig);
+      renderTree();updateUI();
+      if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+      setStatus('Règle démarquée',true);
+      return;
+    }
+    // Restore excluded destinations for a node
+    const restoreNodeId=e.target.closest('[data-restore-node]')?.dataset.restoreNode;
+    if(restoreNodeId){
+      e.stopPropagation();
+      // Find node by id in tree and restore its dsts
+      function findNode(ns,id){for(const n of ns){if(n.id===id)return n;const f=findNode(n.children||[],id);if(f)return f;}return null;}
+      const node=findNode(S.tree||[],restoreNodeId);
+      if(node){
+        node.dsts.forEach(d=>S.nrExcludedDsts.delete(d.split('/')[0]));
+        node.srcs.forEach(s=>S.nrExcludedSrcs.delete(s.split('/')[0]));
+        renderTree();updateUI();
+        if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+        setStatus('Destinations rétablies',true);
+      }
+    }
+  });
+
+  // ── THEME TOGGLE ──────────────────────────────────────────────
+  const themeBtn=document.getElementById('b-theme');
+  function applyTheme(){
+    const t=S.themeOverride;
+    document.documentElement.dataset.theme=t||'auto';
+    themeBtn.textContent=t==='light'?'🌙':t==='dark'?'☀':'🌓';
+    themeBtn.title=t==='light'?'Passer en mode sombre':t==='dark'?'Passer en mode automatique':'Passer en mode clair';
+  }
+  themeBtn.addEventListener('click',()=>{
+    S.themeOverride=S.themeOverride===null?'dark':S.themeOverride==='dark'?'light':null;
+    applyTheme();
+  });
+  applyTheme();
+
+  // ── EXPORT TREATED TOGGLES ────────────────────────────────────
+  ['b-forti-treated','b-pa-treated','b-csv-treated','b-xlsx-treated'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(!btn)return;
+    btn.addEventListener('click',()=>{
+      const on=btn.dataset.on==='1';
+      btn.dataset.on=on?'0':'1';
+      btn.style.background=on?'':'var(--grl)';
+      btn.style.borderColor=on?'':'var(--gr)';
+      btn.style.color=on?'':'var(--gr)';
+      if(id!=='b-xlsx-treated')refreshHub();
+    });
+  });
+
+  // Auto-Optimize
+  document.getElementById('b-optimize').addEventListener('click',autoOptimize);
+
+  // Export Hub
+  document.getElementById('b-hub-trigger').addEventListener('click',openHub);
+  document.getElementById('b-hubclose').addEventListener('click',()=>document.getElementById('hubp').classList.remove('open'));
+  document.querySelectorAll('.tab[data-ht]').forEach(t=>t.addEventListener('click',()=>switchHubTab(t.dataset.ht)));
+  // Disable toggle buttons
+  ['forti','pa'].forEach(v=>{
+    const btn=document.getElementById(`b-${v}-disable`);
+    btn.addEventListener('click',()=>{
+      const on=btn.dataset.on==='1';
+      btn.dataset.on=on?'0':'1';
+      btn.textContent=on?'🔴 Add disabled':'✅ Rules disabled';
+      btn.style.borderColor=on?'':'var(--gr)';
+      btn.style.color=on?'':'var(--gr)';
+      refreshHub();
+    });
+  });
+  document.getElementById('b-forti-regen').addEventListener('click',refreshHub);
+  document.getElementById('b-forti-copy').addEventListener('click',()=>copyBtn('b-forti-copy',document.getElementById('forti-out').textContent));
+  document.getElementById('b-forti-dl').addEventListener('click',()=>{const pol=S.policies[S.selPol];downloadText(document.getElementById('forti-out').textContent,`FireAPG_FortiGate_${(pol?.name||'policy').replace(/\s+/g,'_')}.txt`);});
+  document.getElementById('b-pa-regen').addEventListener('click',refreshHub);
+  document.getElementById('b-pa-copy').addEventListener('click',()=>copyBtn('b-pa-copy',document.getElementById('pa-out').textContent));
+  document.getElementById('b-pa-dl').addEventListener('click',()=>{const pol=S.policies[S.selPol];downloadText(document.getElementById('pa-out').textContent,`FireAPG_PaloAlto_${(pol?.name||'policy').replace(/\s+/g,'_')}.txt`);});
+  document.getElementById('b-csv-copy').addEventListener('click',()=>copyBtn('b-csv-copy',document.getElementById('csv-prev').textContent));
+  document.getElementById('b-csv-dl').addEventListener('click',()=>{const pol=S.policies[S.selPol];downloadCSV(document.getElementById('csv-prev').textContent,`FireAPG_${(pol?.name||'policy').replace(/\s+/g,'_')}.csv`);});
+  document.getElementById('b-xlsx-dl').addEventListener('click',()=>{
+    const sel=getSelected(S.tree)||[];
+    const xlsxTreated=document.getElementById('b-xlsx-treated')?.dataset.on==='1';
+    const allActive=getAllActive(S.tree);
+    const baseNodes=sel.length>0?sel:allActive;
+    const hasValidNodeXl=n=>
+      (n.srcs.length===0||n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0])))&&
+      (n.dsts.length===0||n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0])));
+    const nodes=baseNodes.filter(n=>(xlsxTreated||!S.treated.has(nodeSig(n)))&&hasValidNodeXl(n));
+    const pol=S.policies[S.selPol];
+    doExcel(nodes,pol,xlsxTreated);
+  });
+
+  // Object DB CLI commands button
+  document.getElementById('objdb-cmd-btn').addEventListener('click',()=>{
+    const panel=document.getElementById('objdb-cmd-panel');
+    const isPA=S.fileSource==='pa';
+    panel.style.display=panel.style.display==='none'?'block':'none';
+    if(panel.style.display==='none')return;
+    const cmds=isPA?[
+      {label:'Enter configure mode first',cmd:'configure',note:''},
+      {label:'Address objects',cmd:'show address',note:''},
+      {label:'Service objects',cmd:'show service',note:''},
+    ]:[
+      {label:'IPv4 address objects',cmd:'show firewall address',note:''},
+      {label:'IPv6 address objects',cmd:'show firewall address6',note:''},
+      {label:'Service objects',cmd:'show firewall service custom',note:''},
+      {label:'Zone definitions',cmd:'show system zone',note:''},
+      {label:'SDWAN members',cmd:'sdwan',note:'multi'},
+    ];
+    const noteHtml=isPA?'<div style="color:var(--t3);font-style:italic;margin-bottom:8px">⚠ Must be in configure context</div>':'';
+    const sdwanBlock='conf system sdwan\nshow full-configuration members\nend';
+    panel.innerHTML=noteHtml+cmds.map(c=>{
+      if(c.note==='multi'){
+        return`<div style="margin-bottom:7px">
+          <div style="color:var(--t3);font-size:10px;margin-bottom:2px">${c.label}</div>
+          <div style="display:flex;align-items:flex-start;gap:6px">
+            <pre style="flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx);margin:0;white-space:pre">${sdwanBlock}</pre>
+            <button class="btn sm" style="flex-shrink:0;padding:3px 8px;font-size:10px;margin-top:2px" onclick="navigator.clipboard.writeText(${JSON.stringify(sdwanBlock)}).then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>
+          </div>
+        </div>`;
+      }
+      return`<div style="margin-bottom:7px">
+        <div style="color:var(--t3);font-size:10px;margin-bottom:2px">${c.label}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <code style="flex:1;background:var(--bg);border:1px solid var(--b1);border-radius:4px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx)">${c.cmd}</code>
+          <button class="btn sm" style="flex-shrink:0;padding:3px 8px;font-size:10px" onclick="navigator.clipboard.writeText('${c.cmd}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='Copy',1200)})">Copy</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+
+  // Obj-DB main section — collapsible toggle
+  document.getElementById('objdb-main-toggle').addEventListener('click',e=>{
+    if(e.target.closest('#objdb-clear-btn'))return; // don't collapse on clear click
+    const body=document.getElementById('objdb-main-body');
+    const tog=document.getElementById('objdb-main-toggle');
+    const open=body.classList.toggle('open');
+    tog.classList.toggle('open',open);
+  });
+
+  // Obj-DB file load (auto-detect vendor from S.fileSource)
+  function loadObjDbFile(file){
+    const r=new FileReader();
+    r.onload=e=>{
+      const text=e.target.result;
+      const vendor=S.fileSource==='pa'?'pa':'forti';
+      const db=vendor==='forti'?parseFortiObjDB(text):parsePAObjDB(text);
+      S.objDb[vendor].addrIndex=db.addrIndex;
+      S.objDb[vendor].addr6Index=db.addr6Index;
+      S.objDb[vendor].svcIndex=db.svcIndex;
+      S.objDb[vendor].zone=db.zone||{};
+      const aCount=Object.keys(db.addrIndex||{}).length+Object.keys(db.addr6Index||{}).length;
+      const sCount=Object.keys(db.svcIndex||{}).length;
+      const zCount=Object.keys(db.zone||{}).length;
+      const zUniq=new Set(Object.values(db.zone||{})).size;
+      const badge=document.getElementById('objdb-main-badge');
+      badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zUniq} zones (${zCount} intf)`:''}`;
+      badge.classList.remove('empty');
+      document.getElementById('objdb-clear-btn').style.display='inline';
+      // Auto-activate show object names
+      setStatus(`Object DB: ${aCount} addresses, ${sCount} services loaded`,true);
+      if(S.tree){renderTree();refreshHub();}
+    };
+    r.readAsText(file);
+  }
+  const objFi=document.getElementById('objdb-main-fi');
+  const objDz=document.getElementById('objdb-main-dz');
+  objFi.addEventListener('change',e=>{if(e.target.files[0])loadObjDbFile(e.target.files[0]);});
+  objDz.addEventListener('dragover',e=>{e.preventDefault();objDz.classList.add('over');});
+  objDz.addEventListener('dragleave',()=>objDz.classList.remove('over'));
+  objDz.addEventListener('drop',e=>{e.preventDefault();objDz.classList.remove('over');if(e.dataTransfer.files[0])loadObjDbFile(e.dataTransfer.files[0]);});
+
+  // Clear obj-db
+  document.getElementById('objdb-clear-btn').addEventListener('click',e=>{
+    e.stopPropagation();
+    S.objDb={forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}};
+    document.getElementById('objdb-main-fi').value='';
+    const badge=document.getElementById('objdb-main-badge');
+    badge.textContent='Not loaded';badge.classList.add('empty');
+    document.getElementById('objdb-clear-btn').style.display='none';
+    if(S.tree)renderTree();
+    setStatus('Object database cleared',true);
+  });
+
+  // Show object names toggle
+
+
+  renderGraph({pts:[],nat:[]},80);
+  setStatus('Idle — Import a log file');
+});
+</script>
+</body>
+</html>
