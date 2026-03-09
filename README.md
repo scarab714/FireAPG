@@ -1,4 +1,4 @@
-# FireAPG v0.19c — Firewall Automatic Policy Generator
+# FireAPG — Firewall Automatic Policy Generator
 
 Outil **100 % client-side** — fichier HTML autonome, aucun serveur, aucune donnée transmise — pour analyser des logs de trafic réseau et générer automatiquement des règles de firewall optimisées, prêtes à exporter en CLI ou en tableur.
 
