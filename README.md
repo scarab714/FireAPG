@@ -1,4 +1,4 @@
-# FireAPG v0.19 — Firewall Automatic Policy Generator
+# FireAPG v0.19c — Firewall Automatic Policy Generator
 
 Outil **100 % client-side** — fichier HTML autonome, aucun serveur, aucune donnée transmise — pour analyser des logs de trafic réseau et générer automatiquement des règles de firewall optimisées, prêtes à exporter en CLI ou en tableur.
 
@@ -429,6 +429,61 @@ Le bouton `🌓` en haut à droite permet de cycler entre trois modes :
 | `🌓` | Auto — suit le thème système (clair le jour, sombre la nuit) |
 | `🌙` | Sombre forcé |
 | `☀` | Clair forcé |
+
+---
+
+## Panneau d'aide contextuel
+
+Le bouton `?` en haut à droite ouvre un panneau d'aide glissant (340 px, côté droit).
+
+- Navigation par **pills** : cliquer sur une thématique affiche la section correspondante
+- Retour à l'index via `← Retour` ou clic sur le titre du panneau
+- `✕` ferme le panneau (ou touche `Échap`)
+- Le panneau pousse le contenu principal latéralement — pas de superposition
+
+16 sections disponibles : Import, Policy, ObjDB, Balance Graph, Slider, Ancrage, No-Return, REI, Badges, Merge, Traité, Export Hub, Flow Lens, Traffic Summary, NAT, Security Insights, Auto-Optimize.
+
+---
+
+## Changelog
+
+### v0.19c (mars 2026)
+
+**Fonctionnel**
+- Ajout du panneau d'aide contextuel (16 sections, navigation par pills)
+
+**Performance — 24 optimisations internes**
+- `computeCurve` : 51 traversées récursives → 1 traversée unique + 51 recherches array
+- `nrCategory` : résultat mis en cache sur `flow._nrCat` à l'import (O(1) en lecture)
+- `getTreeStats` : parcours unique pour `active`, `avgPerm`, `selected`, `allActive`, `selectedNodes`
+- `refreshHub` : lazy — seul l'onglet actif est régénéré à chaque interaction
+- `getNRDsts` : mémoïsée, invalidée uniquement sur `loadPolicy` / changement `nrMode` / clear
+- `renderExplorer` : cache `S._explorerFlows` invalidé par `renderTree` uniquement
+- `nodeSig` : mis en cache sur `n._sig` (spread+sort+join évité à chaque appel)
+- `updateAggInfo` : reçoit `allActive` de `updateUI` — plus de second `getAllActive`
+- `countAt(tree, 0)` remplacé par `S.curve.pts[0].rules` (valeur précalculée)
+- `loadFile` : refactored en `async/await` — triple `setTimeout` imbriqué supprimé
+- `renderPolList` : event delegation (1 listener permanent vs N à chaque frappe)
+- `_intfLabel`, `findNodeById`, `minCidrList`, `removeNodes` hissées au niveau module
+- `_domFace` helper extrait (logique dupliquée dans `genCSV` et `doExcel`)
+- `genInsights` : 3 boucles NR + filter/map/Set → 2 passes uniques avec `_nrCat`
+- Debounce 150 ms sur la recherche Flow Lens
+- `pruneRedundant` : comparaison d'ensembles order-insensitive (`sort().join` vs `JSON.stringify`)
+
+### v0.19b
+
+- Optimisations P1–P5 : `getInitialState`, `autoOptimize` non-mutant, `highlightTreeNode` guard, event delegation `tree-c`, try/catch parsers
+
+### v0.19
+
+- Multi-intf sur les nœuds mergés
+- Marquage Traité avec notes
+- Export Excel (.xlsx) avec feuilles Raw Flows et No-Return Flows
+- Security Insights
+- Traffic Summary
+- Filtre No-Return (modes TCP / TCP+UDP-sus)
+- Exclusion individuelle de destinations via `×`
+- Clustering comportemental Jaccard (seuil 60 %)
 
 ---
 
