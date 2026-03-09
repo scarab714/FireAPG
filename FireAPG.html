@@ -500,10 +500,12 @@ input[type=range]::-webkit-slider-thumb{
   position:fixed;right:0;top:52px;height:calc(100vh - 52px);
   width:520px;background:var(--sur);border-left:1px solid var(--b1);
   display:flex;flex-direction:column;z-index:150;
-  transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+  transform:translateX(100%);
+  transition:transform .25s cubic-bezier(.4,0,.2,1), right .2s cubic-bezier(.4,0,.2,1);
   box-shadow:var(--sh2);
 }
 .spanel.open{transform:translateX(0)}
+body.help-open .spanel.open{right:340px;}
 .sp-hdr{
   padding:16px 18px;border-bottom:1px solid var(--b1);
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
@@ -630,6 +632,95 @@ input[type=range]::-webkit-slider-thumb{
   background:var(--orl);border:1px solid var(--or);
   border-radius:var(--r6);margin-top:6px;display:none;line-height:1.4;
 }
+
+/* ── HELP PANEL ──────────────────────────────────────────────── */
+.help-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 13px;border-radius:var(--r6);border:1px solid var(--b1);
+  background:var(--s2);color:var(--t3);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.help-btn:hover,.help-btn.on{border-color:var(--ac);color:var(--ac);background:var(--acl);}
+
+.help-panel{
+  position:fixed;top:0;right:0;bottom:0;width:340px;
+  background:var(--sur);border-left:1px solid var(--b2);
+  display:flex;flex-direction:column;z-index:450;
+  visibility:hidden;opacity:0;transform:translateX(100%);
+  transition:opacity .2s,transform .2s cubic-bezier(.4,0,.2,1),visibility 0s .2s;
+  pointer-events:none;
+}
+.help-panel.open{
+  visibility:visible;opacity:1;transform:translateX(0);
+  transition:opacity .2s,transform .2s cubic-bezier(.4,0,.2,1);
+  pointer-events:auto;
+}
+/* Quand le panneau est ouvert : l'app entière recule de 340px */
+body.help-open header,
+body.help-open .app{
+  margin-right:340px;
+  transition:margin-right .2s cubic-bezier(.4,0,.2,1);
+}
+header,
+.app{
+  transition:margin-right .2s cubic-bezier(.4,0,.2,1);
+}
+.help-phdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;
+  background:var(--s2);
+}
+.help-phdr-left{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--tx);}
+.help-back{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;color:var(--t3);
+  cursor:pointer;padding:3px 0;margin-bottom:12px;
+  border:none;background:none;font-family:inherit;
+  transition:color .12s;
+}
+.help-back:hover{color:var(--ac);}
+.help-phdr-left{cursor:pointer;transition:color .12s;}
+.help-phdr-left:hover{color:var(--ac);}
+
+.help-phdr-close{
+  width:24px;height:24px;border-radius:var(--r4);border:1px solid var(--b1);
+  background:transparent;color:var(--t3);font-size:13px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;
+}
+.help-phdr-close:hover{background:var(--rdl);border-color:var(--rd);color:var(--rd);}
+.help-body{flex:1;overflow-y:auto;padding:16px;}
+.help-topic{display:none;}
+.help-topic.active{display:block;}
+.help-topic h2{font-size:13px;font-weight:700;color:var(--tx);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+.help-topic .hl{font-size:11.5px;color:var(--t3);line-height:1.55;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--b1);}
+.help-topic h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin:14px 0 5px;}
+.help-topic p{font-size:11.5px;color:var(--t2);line-height:1.7;margin:0 0 9px;}
+.hk{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.hkr{display:grid;grid-template-columns:auto 1fr;gap:6px 8px;align-items:baseline;font-size:11.5px;}
+.hkk{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r4);
+  padding:2px 5px;color:var(--tx);white-space:nowrap;
+}
+.hkv{color:var(--t2);line-height:1.5;}
+.htip{
+  background:var(--acl);border:1px solid var(--ac);border-radius:var(--r6);
+  padding:7px 9px;font-size:11px;color:var(--ac);line-height:1.5;margin:8px 0;display:flex;gap:6px;
+}
+.hwarn{
+  background:var(--orl);border:1px solid var(--or);border-radius:var(--r6);
+  padding:7px 9px;font-size:11px;color:var(--or);line-height:1.5;margin:8px 0;display:flex;gap:6px;
+}
+.help-nav-pills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px;}
+.help-pill{
+  font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:var(--r4);
+  border:1px solid var(--b1);background:var(--s2);color:var(--t2);
+  cursor:pointer;transition:all .12s;
+}
+.help-pill:hover,.help-pill.act{border-color:var(--ac);background:var(--acl);color:var(--ac);}
+.help-badge-ex{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--t2);line-height:1.5;margin-bottom:6px;}
+.help-badge-ex .nb{font-size:10px;flex-shrink:0;margin-top:1px;}
+
 </style>
 </head>
 <body>
@@ -653,6 +744,7 @@ input[type=range]::-webkit-slider-thumb{
     <button class="btn" id="b-exp-open" disabled>🔍 Flow Lens</button>
     <button class="btn warn" id="b-optimize" disabled>⚡ Auto-Optimize</button>
     <button class="theme-btn" id="b-theme" title="Toggle light/dark theme">🌙</button>
+    <button class="help-btn" id="b-help">? Help</button>
   </div>
 </header>
 
@@ -984,39 +1076,55 @@ const PRIVATE_RANGES=[{s:167772160,e:184549375},{s:2886729728,e:2887778303},{s:3
 // UDP ports that are expected to be one-way (syslog, NTP, SNMP trap, DHCP, DNS, etc.)
 const NR_UDP_NORMAL_PORTS=new Set([53,67,68,123,137,138,161,162,514,4500,500,6514,520,5353,1900,5005,5006,2055,9995,9996]);
 function nrCategory(flow){
+  if(flow._nrCat!==undefined)return flow._nrCat; // cache calculé à l'import
   if(!flow.noReturn)return null;
   if(flow.proto===6)return 'tcp';
   if(flow.proto===17)return NR_UDP_NORMAL_PORTS.has(flow.port)?'udp-ok':'udp-sus';
   return 'udp-sus';
 }
+// Calcule et stocke _nrCat sur un flow — appelé une fois à la création
+function cacheNrCat(flow){
+  if(!flow.noReturn){flow._nrCat=null;return;}
+  if(flow.proto===6){flow._nrCat='tcp';return;}
+  flow._nrCat=(flow.proto===17)?NR_UDP_NORMAL_PORTS.has(flow.port)?'udp-ok':'udp-sus':'udp-sus';
+}
 
-let S={
-  policies:{},selPol:null,flows:[],tree:null,perm:80,
-  curve:{pts:[],nat:[]},optimalPerm:null,
-  anchorMode:'auto',
-  fixSrc:false, fixDst:false,
-  nrMode:'none',
-  nrExcludedDsts:new Set(),
-  nrExcludedSrcs:new Set(),  // future-proof: excluded source IPs
-  fileSource:'forti',
-  expFilter:null,expFilterType:null,expTab:'src',
-  expDrill:[],          // stack: [{dim:'src'|'dst'|'svc', value:string}]
-  expDimOrder:['src','dst','svc'],  // user-chosen navigation order
-  expSearch:'',         // live search filter in flow lens
-  hubTab:'forti',
-  _highlightId:null,
-  themeOverride:null,   // null=auto | 'light' | 'dark'
-  treated:new Set(),    // Set<nodeSignature> — content-based stable ID
-  treatedNotes:new Map(),// Map<nodeSignature, string>
-  objDb:{
-    forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},
-    pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}
-  },
-};
+// ================================================================
+// INITIAL STATE — source de vérité unique pour le reset
+// themeOverride est exclu : il survit au clearAll (préférence utilisateur)
+// ================================================================
+function getInitialState(){
+  return{
+    policies:{},selPol:null,flows:[],tree:null,perm:80,
+    curve:{pts:[],nat:[]},optimalPerm:null,
+    anchorMode:'auto',
+    fixSrc:false,fixDst:false,
+    nrMode:'none',
+    nrExcludedDsts:new Set(),
+    nrExcludedSrcs:new Set(),
+    fileSource:'forti',
+    expFilter:null,expFilterType:null,expTab:'src',
+    expDrill:[],
+    expDimOrder:['src','dst','svc'],
+    expSearch:'',
+    hubTab:'forti',
+    _highlightId:null,
+    _explorerFlows:null,  // cache flows actifs pour Flow Lens — invalidé par renderTree
+    treated:new Set(),
+    treatedNotes:new Map(),
+    objDb:{
+      forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},
+      pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}
+    },
+  };
+}
+let S=getInitialState();
+S.themeOverride=null; // null=auto | 'light' | 'dark' — survit au clearAll
 
-// Stable content-based signature for a node (survives perm changes)
+// Stable content-based signature — mis en cache sur n._sig à la première demande
 function nodeSig(n){
-  return[...n.srcs].sort().join('|')+'→'+[...n.dsts].sort().join('|')+'@'+[...n.svcs].sort().join(',');
+  if(!n._sig)n._sig=[...n.srcs].sort().join('|')+'→'+[...n.dsts].sort().join('|')+'@'+[...n.svcs].sort().join(',');
+  return n._sig;
 }
 
 // ================================================================
@@ -1114,6 +1222,7 @@ function parseFortinet(text){
       noReturn:sentbyte>0&&rcvdbyte===0,isV6,source:'forti',
       nat:natInfo,
     });
+    cacheNrCat(pols[pid].flows[pols[pid].flows.length-1]);
   }
   return pols;
 }
@@ -1177,6 +1286,7 @@ function parsePaloAlto(text){
       sentbyte,rcvdbyte,duration:0,noReturn:sentbyte>0&&rcvdbyte===0,isV6,source:'pa',
       nat:paNat,
     });
+    cacheNrCat(pols[pid].flows[pols[pid].flows.length-1]);
   }
   // Multi-device notice
   const notice=document.getElementById('pa-multi-dev');
@@ -2167,14 +2277,39 @@ function buildSmartDstGroups(leaves,flows,dstIps,isV6){
 function uniqSvcs(flows){return[...new Set(flows.map(f=>f.svcKey))].sort();}
 function pruneRedundant(node){
   node.children.forEach(pruneRedundant);
-  while(node.children.length===1){const c=node.children[0];if(JSON.stringify(c.srcs)===JSON.stringify(node.srcs)&&JSON.stringify(c.dsts)===JSON.stringify(node.dsts)){node.children=c.children;}else break;}
+  // Comparaison par ensemble trié — insensible à l'ordre d'insertion
+  while(node.children.length===1){
+    const c=node.children[0];
+    const sameSrc=[...c.srcs].sort().join('|')===[...node.srcs].sort().join('|');
+    const sameDst=[...c.dsts].sort().join('|')===[...node.dsts].sort().join('|');
+    if(sameSrc&&sameDst){node.children=c.children;}else break;
+  }
 }
 
 // ================================================================
 // CURVE + PERM APPLY
 // ================================================================
 function computeCurve(tree){
-  const pts=[];for(let p=0;p<=100;p+=2)pts.push({perm:p,rules:countAt(tree,p)});
+  // Traversée UNIQUE — collecte perm + minAncPerm + isLeaf pour chaque nœud.
+  // countAt(th) = nœuds où (isLeaf || perm<=th) ET minAncPerm>th
+  // Évite 51 traversées récursives séparées.
+  const nodes=[];
+  (function walk(ns,minAnc){
+    for(const n of ns){
+      nodes.push({perm:n.perm,isLeaf:!n.children.length,minAnc});
+      if(n.children.length)walk(n.children,Math.min(minAnc,n.perm));
+    }
+  })(tree,Infinity);
+  const pts=[];
+  for(let p=0;p<=100;p+=2){
+    let c=0;
+    for(let i=0;i<nodes.length;i++){
+      const nd=nodes[i];
+      if(nd.minAnc<=p)continue; // un ancêtre a déjà été compté
+      if(nd.perm<=p||nd.isLeaf)c++;
+    }
+    pts.push({perm:p,rules:c});
+  }
   const nat=[];
   for(let i=2;i<pts.length-2;i++){const b=pts[i-1].rules-pts[i].rules,a=pts[i].rules-pts[i+1].rules;if(b>=1&&a<=b*0.35&&pts[i].rules>0)nat.push(pts[i]);}
   nat.push(pts[0],pts[pts.length-1]);
@@ -2187,10 +2322,18 @@ function applyPerm(tree,pl){
   function ck(ns){for(const n of ns){if(!n.manualOverride){n.expanded=false;n.active=false;}ck(n.children);}}
   w(tree);
 }
-function countActive(tree){if(!tree)return 0;let c=0;function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)c++;}}w(tree);return c;}
-function avgPermActive(tree){if(!tree)return 0;const p=[];function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)p.push(n.perm);}}w(tree);return p.length?Math.round(p.reduce((a,b)=>a+b,0)/p.length):0;}
+// ── Parcours unique : active, avgPerm, selected, allActive, selectedNodes ─────
+function getTreeStats(tree){
+  if(!tree)return{active:0,avgPerm:0,selected:0,allActive:[],selectedNodes:[]};
+  let cnt=0,permSum=0,sel=0;const all=[],selNodes=[];
+  function w(ns){for(const n of ns){if(n.expanded){w(n.children);}else if(n.active){cnt++;permSum+=n.perm;all.push(n);if(n.selected){sel++;selNodes.push(n);}}}}
+  w(tree);
+  return{active:cnt,avgPerm:cnt?Math.round(permSum/cnt):0,selected:sel,allActive:all,selectedNodes:selNodes};
+}
+function countActive(tree){return getTreeStats(tree).active;}
+function avgPermActive(tree){return getTreeStats(tree).avgPerm;}
 function getSelected(tree){if(!tree)return[];const r=[];function w(ns){for(const n of ns){if(n.active&&!n.expanded&&n.selected)r.push(n);if(n.expanded)w(n.children);}}w(tree);return r;}
-function getAllActive(tree){if(!tree)return[];const r=[];function w(ns){for(const n of ns){if(n.expanded)w(n.children);else if(n.active)r.push(n);}}w(tree);return r;}
+function getAllActive(tree){return getTreeStats(tree).allActive;}
 // Export-aware: excludes treated nodes unless toggle is on
 function getExportNodes(tree,includeTreated){
   const all=getAllActive(tree);
@@ -2210,18 +2353,37 @@ function resetOvr(tree){if(!tree)return;function w(ns){for(const n of ns){n.manu
 // ================================================================
 // AUTO-OPTIMIZE
 // ================================================================
+// Parcourt l'arbre comme applyPerm le ferait, sans muter aucun nœud.
+// Respecte les manualOverride existants.
+function getActiveAt(tree,th){
+  if(!tree)return[];
+  const r=[];
+  function w(ns){
+    for(const n of ns){
+      if(n.manualOverride){
+        // Override manuel : état figé, on respecte active/expanded tel quel
+        if(n.active&&!n.expanded)r.push(n);
+        else if(n.expanded)w(n.children);
+      } else if(n.perm<=th||!n.children.length){
+        r.push(n);
+      } else {
+        w(n.children);
+      }
+    }
+  }
+  w(tree);return r;
+}
 function autoOptimize(){
   if(!S.tree)return;
   const pts=S.curve.pts;if(!pts.length)return;
-  const maxRules=countAt(S.tree,0);
+  const maxRules=S.curve?.pts?.[0]?.rules||countAt(S.tree,0); // pts[0] = countAt(tree,0)
   // Score function: minimize perm*0.5 + normalized_rules*0.3 + avg_svc_risk*0.2
   let bestScore=Infinity,bestPerm=80;
   for(const pt of pts){
     if(!pt.rules)continue;
     const normRules=pt.rules/maxRules;
-    // Compute avg svc perm at this threshold
-    applyPerm(S.tree,pt.perm);
-    const active=getAllActive(S.tree);
+    // getActiveAt : non-mutant, respecte les overrides manuels existants
+    const active=getActiveAt(S.tree,pt.perm);
     const avgSvc=active.length?active.reduce((a,n)=>a+svcPerm(n.svcs),0)/active.length:0;
     const score=(pt.perm/100)*0.5+normRules*0.3+(avgSvc/100)*0.2;
     if(score<bestScore){bestScore=score;bestPerm=pt.perm;}
@@ -2268,8 +2430,11 @@ function renderGraph(curve,perm){
 // ================================================================
 // TREE RENDERING
 // ================================================================
+// Cache invalidé à chaque changement de flows ou nrMode
+let _nrDstsCache=null;
+function invalidateNRCache(){_nrDstsCache=null;}
 function getNRDsts(){
-  // Returns Map: dstip → worst NR category ('tcp'|'udp-sus'|'udp-ok')
+  if(_nrDstsCache)return _nrDstsCache;
   const m=new Map();
   for(const f of S.flows){
     const c=nrCategory(f);
@@ -2277,10 +2442,15 @@ function getNRDsts(){
     const prev=m.get(f.dstip);
     if(!prev||c==='tcp'||(c==='udp-sus'&&prev==='udp-ok'))m.set(f.dstip,c);
   }
+  _nrDstsCache=m;
   return m;
 }
 
+// Labels NR tooltip — portée module pour le listener délégué
+const NR_TIP_LABEL={'tcp':'🔴 TCP no-return (refused/blocked)','udp-sus':'🟠 UDP no-return (suspect port)','udp-ok':'🟡 UDP one-way normal (kept)'};
+
 function renderTree(){
+  S._explorerFlows=null; // invalide le cache Flow Lens (active nodes peuvent avoir changé)
   const c=document.getElementById('tree-c');
   if(!S.tree?.length){
     c.innerHTML='<div class="es"><div class="es-icon">🌲</div><div class="es-title">No data</div><div class="es-sub">Select a policy to analyze.</div></div>';
@@ -2290,47 +2460,21 @@ function renderTree(){
   const nrCats=getNRDsts();
   const nrDsts=new Set(nrCats.keys());
   c.innerHTML=S.tree.map(n=>rnode(n,0,nrDsts,nrCats)).join('');
-  c.querySelectorAll('[data-t]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleNode(S.tree,b.dataset.t);renderTree();updateUI();}));
-  c.querySelectorAll('[data-ck]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();setSel(S.tree,b.dataset.ck,b.classList.contains('ck')?false:true);renderTree();updateUI();}));
-  // NR tooltip — all 3 categories
-  const NR_TIP_LABEL={'tcp':'🔴 TCP no-return (refused/blocked)','udp-sus':'🟠 UDP no-return (suspect port)','udp-ok':'🟡 UDP one-way normal (kept)'};
-  c.querySelectorAll('[data-nr-tip]').forEach(el=>{
-    el.addEventListener('mouseenter',ev=>{
-      const svcs=el.dataset.nrTip||'—';
-      const cat=el.dataset.nrCat||'';
-      const label=NR_TIP_LABEL[cat]||'No-return';
-      showTip(ev,`<div style="font-weight:700;margin-bottom:4px">${label}</div><div style="font-size:11px;color:var(--t2);line-height:1.7">${svcs}</div>`);
-    });
-    el.addEventListener('mouseleave',hideTip);
-  });
-  // NAT tooltip
-  c.querySelectorAll('[data-nat-tip]').forEach(el=>{
-    el.addEventListener('mouseenter',ev=>{
-      const tip=el.dataset.natTip||'—';
-      showTip(ev,`<div style="font-weight:700;margin-bottom:4px">🔵 NAT details</div><div style="font-size:11px;color:var(--t2);line-height:1.8">${tip}</div>`);
-    });
-    el.addEventListener('mouseleave',hideTip);
-  });
-  // × on NR dst tags → toggle exclude/reactivate (visual + export only, no tree rebuild)
-  c.querySelectorAll('[data-excl-dst]').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation();
-    const ip=b.dataset.exclDst;
-    if(S.nrExcludedDsts.has(ip)){
-      S.nrExcludedDsts.delete(ip);
-      setStatus(`Reactivated ${ip}`,true);
-    } else {
-      S.nrExcludedDsts.add(ip);
-      setStatus(`Excluded ${ip} from export`,true);
-    }
-    renderTree();updateUI();
-  }));
-  // Unmerge buttons
-  c.querySelectorAll('[data-unmerge]').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation();
-    unmergeNode(b.dataset.unmerge);
-  }));
+  // Tous les listeners sont délégués sur tree-c (voir initTreeListeners)
 }
 
+// intfLabel au niveau module — évite 1 closure créée par nœud rendu
+function _intfLabel(arr,faceKey,flows,isPA){
+  if(!arr||!arr.length)return'';
+  const zones=[...new Set(arr.map(i=>isPA?i:(zoneForIntf(i)||i)))];
+  if(isPA&&faceKey&&flows&&flows.length){
+    const faceCounts={};
+    flows.forEach(f=>{const fc=f[faceKey];if(fc){faceCounts[fc]=(faceCounts[fc]||0)+1;}});
+    const domFace=Object.entries(faceCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+    return zones.join(', ')+(domFace?` (${domFace})`:'');
+  }
+  return zones.join(', ');
+}
 function rnode(n,d,nrDsts,nrCats){
   const ind=d*16,hk=n.children?.length>0;
   // NR category for this node
@@ -2362,17 +2506,24 @@ function rnode(n,d,nrDsts,nrCats){
     ?`<span class="empty-node-badge">⚠️ ${emptyLabel}<button class="empty-node-restore" data-restore-node="${n.id}" title="Rétablir">↩ Rétablir</button></span>`
     :'';
   let nrBadge='';
-  // Build NR badge with tooltip for all categories
-  if(nrCat==='tcp'){
-    const tcpFlows=n.flows.filter(f=>nrCategory(f)==='tcp');
-    const tcpSvcs=[...new Set(tcpFlows.map(f=>{const lbl=svcKeyLabel(f.svcKey);const n=lookupSvcName(f.svcKey);return(n&&n!==lbl)?`${n} (${lbl})`:lbl;}))].join(', ');
-    nrBadge=`<span class="nb nnr-tcp" data-nr-tip="${tcpSvcs.replace(/"/g,'&quot;')}" data-nr-cat="tcp">🔴 NR-TCP</span>`;
-  } else if(nrCat==='udp-sus'){
-    const susSvcs=[...new Set(n.flows.filter(f=>nrCategory(f)==='udp-sus').map(f=>{const lbl=svcKeyLabel(f.svcKey);const nm=lookupSvcName(f.svcKey);return(nm&&nm!==lbl)?`${nm} (${lbl})`:lbl;}))].join(', ');
-    nrBadge=`<span class="nb nnr-udp-sus" data-nr-tip="${susSvcs.replace(/"/g,'&quot;')}" data-nr-cat="udp-sus">🟠 NR-UDP?</span>`;
-  } else if(nrCat==='udp-ok'){
-    const okSvcs=[...new Set(n.flows.filter(f=>nrCategory(f)==='udp-ok').map(f=>{const lbl=svcKeyLabel(f.svcKey);const nm=lookupSvcName(f.svcKey);return(nm&&nm!==lbl)?`${nm} (${lbl})`:lbl;}))].join(', ');
-    nrBadge=`<span class="nb nnr-udp-ok" data-nr-tip="${okSvcs.replace(/"/g,'&quot;')}" data-nr-cat="udp-ok">🟡 NR-UDP</span>`;
+  // Build NR badge — 1 passe sur n.flows (au lieu de 3 filter+map séparés)
+  if(nrCat){
+    const tcpS=new Set(),susS=new Set(),okS=new Set();
+    for(const f of n.flows){
+      const cat=nrCategory(f); // O(1) avec cache
+      if(!cat)continue;
+      const lbl=svcKeyLabel(f.svcKey),nm=lookupSvcName(f.svcKey);
+      const label=(nm&&nm!==lbl)?`${nm} (${lbl})`:lbl;
+      if(cat==='tcp')tcpS.add(label);
+      else if(cat==='udp-sus')susS.add(label);
+      else if(cat==='udp-ok')okS.add(label);
+    }
+    if(nrCat==='tcp')
+      nrBadge=`<span class="nb nnr-tcp" data-nr-tip="${[...tcpS].join(', ').replace(/"/g,'&quot;')}" data-nr-cat="tcp">🔴 NR-TCP</span>`;
+    else if(nrCat==='udp-sus')
+      nrBadge=`<span class="nb nnr-udp-sus" data-nr-tip="${[...susS].join(', ').replace(/"/g,'&quot;')}" data-nr-cat="udp-sus">🟠 NR-UDP?</span>`;
+    else if(nrCat==='udp-ok')
+      nrBadge=`<span class="nb nnr-udp-ok" data-nr-tip="${[...okS].join(', ').replace(/"/g,'&quot;')}" data-nr-cat="udp-ok">🟡 NR-UDP</span>`;
   }
 
   // NAT badge — show if any flow has NAT
@@ -2398,24 +2549,12 @@ function rnode(n,d,nrDsts,nrCats){
   const pp=`<span class="pp" style="background:${pcolor(n.perm)}18;color:${pcolor(n.perm)}" title="Perm ${n.perm}/100 = CIDR ${cidrScore}×70% + SVC ${svcScore}×30%">${n.perm}</span>`;
   const nh=`<span class="nh">${n.hits.toLocaleString('fr-FR')} fl.</span>`;
 
-  // Intf/zone helper — FG: lookup zone from ObjDB; PA: zone already in srcintf, show physical face from flows
+  // Intf/zone helper — hissée au niveau module pour éviter recréation par nœud
   const isPA=n.flows&&n.flows[0]&&n.flows[0].source==='pa';
-  function intfLabel(arr,faceKey){
-    if(!arr||!arr.length)return'';
-    const zones=[...new Set(arr.map(i=>isPA?i:(zoneForIntf(i)||i)))];
-    if(isPA&&faceKey&&n.flows&&n.flows.length){
-      // dominant physical interface from flows
-      const faceCounts={};
-      n.flows.forEach(f=>{const fc=f[faceKey];if(fc){faceCounts[fc]=(faceCounts[fc]||0)+1;}});
-      const domFace=Object.entries(faceCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
-      return zones.join(', ')+(domFace?` (${domFace})`:'');
-    }
-    return zones.join(', ');
-  }
   const srcIntfArr=n.srcintfs||[n.srcintf].filter(Boolean);
   const dstIntfArr=n.dstintfs||[n.dstintf].filter(Boolean);
-  const srcIntfTxt=intfLabel(srcIntfArr,'srcface');
-  const dstIntfTxt=intfLabel(dstIntfArr,'dstface');
+  const srcIntfTxt=_intfLabel(srcIntfArr,'srcface',n.flows,isPA);
+  const dstIntfTxt=_intfLabel(dstIntfArr,'dstface',n.flows,isPA);
   const srcIntfSpan=srcIntfTxt?` <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:5px;font-family:'JetBrains Mono',monospace">↳ ${srcIntfTxt}</span>`:'';
   const dstIntfSpan=dstIntfTxt?` <span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:5px;font-family:'JetBrains Mono',monospace">↳ ${dstIntfTxt}</span>`:'';
 
@@ -2432,7 +2571,7 @@ function rnode(n,d,nrDsts,nrCats){
     const xBtn=isExcludable
       ?`<span class="dst-tag-x${isExcluded?' reactivate':''}" data-excl-dst="${ip}" title="${isExcluded?'Click to reactivate':'Exclude this destination from export (NR)'}">${isExcluded?'↩':'×'}</span>`
       :'';
-    return`<span class="dst-tag ${cls}">${fmtCidr(d,n.isV6)}${xBtn}</span>`;
+    return`<span class="dst-tag ${cls}"${dnrCat?'':''}>${fmtCidr(d,n.isV6)}${xBtn}</span>`;
   };
   const dstHtml=`<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:0"><span class="nb nd">DST</span>${dstIntfSpan}<div class="dst-list" style="margin-top:2px">${n.dsts.map(dstTagFn).join('')}</div></div>`;
 
@@ -2448,14 +2587,21 @@ function rnode(n,d,nrDsts,nrCats){
 // ================================================================
 function genInsights(flows,tree){
   const ins=[];
-  const all=dedup(flows);
-  const nrFlows=all.filter(f=>f.noReturn);
-  const nrTCP=nrFlows.filter(f=>f.proto===6);
-  const nrUDPSus=nrFlows.filter(f=>f.proto===17&&!NR_UDP_NORMAL_PORTS.has(f.port));
+  // S.flows est déjà filtré à l'import — dedup ici était redondant
+  const all=flows;
+  // 1 passe avec _nrCat (mis en cache à l'import) — remplace 3 filter séparés
+  const nrTCP=[],nrUDPSus=[];
+  for(const f of all){
+    const cat=f._nrCat;
+    if(cat==='tcp')nrTCP.push(f);
+    else if(cat==='udp-sus')nrUDPSus.push(f);
+  }
   if(nrTCP.length){const pct=Math.round(nrTCP.length/all.length*100);ins.push({t:pct>10?'crit':'warn',h:`🔴 ${nrTCP.length} TCP no-return flow(s) (${pct}%)`,b:'TCP sent bytes > 0 but no reply. Likely connection refused, blocked, or host unreachable.'});}
   if(nrUDPSus.length){ins.push({t:'warn',h:`🟠 ${nrUDPSus.length} suspect UDP no-return flow(s)`,b:`UDP ports with no response on unexpected ports: ${[...new Set(nrUDPSus.map(f=>f.port))].slice(0,8).join(', ')}`});}
-  const extDsts=all.filter(f=>f.dstcountry&&!['Private','Reserved',''].includes(f.dstcountry));
-  const countries=[...new Set(extDsts.map(f=>f.dstcountry))];
+  // 1 passe pour collecter les pays externes (remplace filter+map+Set séparés)
+  const countriesSet=new Set();
+  for(const f of all){if(f.dstcountry&&f.dstcountry!=='Private'&&f.dstcountry!=='Reserved'&&f.dstcountry!=='')countriesSet.add(f.dstcountry);}
+  const countries=[...countriesSet];
   if(countries.length>0)ins.push({t:'info',h:`🌍 ${countries.length} destination countries`,b:countries.slice(0,6).join(', ')+(countries.length>6?` +${countries.length-6} more`:'')});
   if(S.anchorMode==='auto'||(!S.fixSrc&&!S.fixDst)){
     const sigs=buildBehavioralSignatures(all);
@@ -2486,9 +2632,7 @@ function setPerm(p){
   const pbf=document.getElementById('pbf');
   pbf.style.width=S.perm+'%';pbf.style.background=pcolor(S.perm);
   if(S.tree){
-    const rc=countActive(S.tree);
-    document.getElementById('pmain').textContent=rc;
-    document.getElementById('psub').textContent=`rule${rc!==1?'s':''} at current level`;
+    // renderTree() + updateUI() recalculent rc — countActive() redondant ici supprimé
     renderTree();updateUI();renderGraph(S.curve,S.perm);
   }
 }
@@ -2508,10 +2652,10 @@ function updateAnchorMode(){
     renderGraph(S.curve,S.perm);renderTree();updateUI();
   }
 }
-function updateAggInfo(){
+function updateAggInfo(nodes){
+  // nodes = allActive passé par updateUI (évite 2ème getAllActive séparé)
   const box=document.getElementById('agg-info');
-  if(!S.tree){box.style.display='none';return;}
-  const nodes=getAllActive(S.tree);
+  if(!S.tree||!nodes){box.style.display='none';return;}
   if(!nodes.length){box.style.display='none';return;}
   const allSrcs=new Set(),allDsts=new Set(),srcCidrs=new Set(),dstCidrs=new Set();
   for(const n of nodes){
@@ -2524,12 +2668,12 @@ function updateAggInfo(){
 }
 function updateUI(){
   if(!S.tree)return;
-  applyPerm(S.tree,S.perm);
-  const rc=countActive(S.tree);
-  const ap=avgPermActive(S.tree);
-  const sc=countSel(S.tree);
+  // applyPerm déjà appelé par renderTree() avant updateUI() — pas de double appel
+  const stats=getTreeStats(S.tree);
+  const{active:rc,avgPerm:ap,selected:sc}=stats;
   const total=S.flows.length;
-  const maxR=countAt(S.tree,0);
+  // S.curve.pts[0].rules = countAt(tree,0) — déjà calculé par computeCurve, pas de re-traversée
+  const maxR=S.curve?.pts?.[0]?.rules||0;
   const gain=maxR?Math.round((1-rc/maxR)*100):0;
   document.getElementById('h-rules').textContent=rc;
   document.getElementById('h-perm').textContent=ap;
@@ -2547,7 +2691,7 @@ function updateUI(){
   if(tcEl){tcEl.textContent=`✓ ${tc}/${rc} traités`;tcEl.classList.toggle('vis',tc>0);}
   document.getElementById('tsub').textContent=`${rc} rules · Avg perm ${ap}/100 · ${gain}% fewer vs /32${tc>0?` · ${tc} traités`:''}`;
   document.getElementById('b-hub-trigger').disabled=false;
-  updateAggInfo();
+  updateAggInfo(stats.allActive); // réutilise allActive déjà calculé par getTreeStats
 }
 
 // ================================================================
@@ -2877,6 +3021,13 @@ function fmtCidr(cidr,isV6){
 // ================================================================
 // EXPORT HUB
 // ================================================================
+// Helper interface/face PA — dupliqué dans genCSV et doExcel, extrait ici
+function _domFace(flows,faceKey,fallback){
+  if(S.fileSource!=='pa')return fallback;
+  const m={};
+  for(const f of flows){if(f[faceKey])m[f[faceKey]]=(m[f[faceKey]]||0)+1;}
+  return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||fallback;
+}
 function cidr4mask(p){const m=p===0?0:(0xFFFFFFFF<<(32-p))>>>0;return int2ip4(m);}
 function genFortinet(nodes,polName,disableRules,includeTreated){
   const lines=[],ts=new Date().toLocaleString('en-GB');
@@ -3079,8 +3230,8 @@ function genCSV(nodes,includeTreated){
     const rSig=nodeSig(n);
     const rTreated=S.treated.has(rSig);
     const rNote=S.treatedNotes.get(rSig)||'';
-    const domFaceSrc=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.srcface)m[f.srcface]=(m[f.srcface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.srcintf;})():n.srcintf;
-    const domFaceDst=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.dstface)m[f.dstface]=(m[f.dstface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.dstintf;})():n.dstintf;
+    const domFaceSrc=_domFace(n.flows,'srcface',n.srcintf);
+    const domFaceDst=_domFace(n.flows,'dstface',n.dstintf);
     const row=[i+1,rTreated?'TRAITÉ':'',rNote,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',domFaceSrc];
     if(hasZone)row.push(S.fileSource==='pa'?n.srcintf:zoneForIntf(n.srcintf));
     row.push(domFaceDst);
@@ -3114,8 +3265,8 @@ function doExcel(nodes,pol,includeTreated){
     const rSig=nodeSig(n);
     const rTreated=S.treated.has(rSig);
     const rNote=S.treatedNotes.get(rSig)||'';
-    const domFaceSrc=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.srcface)m[f.srcface]=(m[f.srcface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.srcintf;})():n.srcintf;
-    const domFaceDst=S.fileSource==='pa'?(()=>{const m={};n.flows.forEach(f=>{if(f.dstface)m[f.dstface]=(m[f.dstface]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||n.dstintf;})():n.dstintf;
+    const domFaceSrc=_domFace(n.flows,'srcface',n.srcintf);
+    const domFaceDst=_domFace(n.flows,'dstface',n.dstintf);
     const row=[i+1,rTreated?'TRAITÉ':'',rNote,n.isV6?'IPv6':'IPv4',n.noReturn?'YES':'',domFaceSrc];
     if(hasZone)row.push(S.fileSource==='pa'?n.srcintf:zoneForIntf(n.srcintf));
     row.push(domFaceDst);
@@ -3175,43 +3326,91 @@ function doExcel(nodes,pol,includeTreated){
 function openHub(){
   document.getElementById('expp').classList.remove('open');
   document.getElementById('hubp').classList.add('open');
-  refreshHub();
+  refreshHub(true); // force=true : générer tous les tabs à l'ouverture
 }
-function refreshHub(){
+function refreshHub(force){
   if(!S.tree)return;
-  const sel=getSelected(S.tree);
-  const fortiTreated=document.getElementById('b-forti-treated')?.dataset.on==='1';
-  const paTreated=document.getElementById('b-pa-treated')?.dataset.on==='1';
-  const csvTreated=document.getElementById('b-csv-treated')?.dataset.on==='1';
-  // Base nodes: selected or all active
-  const allActive=getAllActive(S.tree);
+  // Un seul parcours pour allActive + selectedNodes (évite getSelected séparé)
+  const{allActive,selectedNodes:sel}=getTreeStats(S.tree);
   const baseNodes=sel.length>0?sel:allActive;
-  // Export nodes: filter treated unless toggle on
-  // Helper: node has at least one valid src AND one valid dst (not all excluded)
-  const hasValidNode=n=>
-    (n.srcs.length===0||n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0])))&&
-    (n.dsts.length===0||n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0])));
-  const fortiNodes=baseNodes.filter(n=>(fortiTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
-  const paNodes=baseNodes.filter(n=>(paTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
-  const csvNodes=baseNodes.filter(n=>(csvTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
   const pol=S.policies[S.selPol];
   const label=sel.length>0?`${sel.length} selected rule(s)`:`${allActive.length} active rules (none selected)`;
   document.getElementById('hub-info-hdr').textContent=label;
-  const fortiDisable=document.getElementById('b-forti-disable')?.dataset.on==='1';
-  const paDisable=document.getElementById('b-pa-disable')?.dataset.on==='1';
-  document.getElementById('forti-out').textContent=genFortinet(fortiNodes,pol?.name||'policy',fortiDisable,fortiTreated);
-  document.getElementById('forti-info').textContent=`${fortiNodes.length} rule(s)${fortiTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
-  document.getElementById('pa-out').textContent=genPaloAlto(paNodes,pol?.name||'policy',paDisable,paTreated);
-  document.getElementById('pa-info').textContent=`${paNodes.length} rule(s)${paTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
-  const csv=genCSV(csvNodes,csvTreated);
-  document.getElementById('csv-prev').textContent=csv;
-  document.getElementById('csv-info').textContent=`${csvNodes.length} rows`;
-  document.getElementById('xlsx-info').textContent=`${csvNodes.length} rules + ${dedup(S.flows).length} flows`;
+  const hasValidNode=n=>
+    (n.srcs.length===0||n.srcs.some(s=>!S.nrExcludedSrcs.has(s.split('/')[0])))&&
+    (n.dsts.length===0||n.dsts.some(d=>!S.nrExcludedDsts.has(d.split('/')[0])));
+
+  // Lazy : ne régénère que l'onglet actif (ou tous si force=true)
+  const tab=S.hubTab||'forti';
+
+  if(force||tab==='forti'){
+    const fortiTreated=document.getElementById('b-forti-treated')?.dataset.on==='1';
+    const fortiDisable=document.getElementById('b-forti-disable')?.dataset.on==='1';
+    const fortiNodes=baseNodes.filter(n=>(fortiTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+    document.getElementById('forti-out').textContent=genFortinet(fortiNodes,pol?.name||'policy',fortiDisable,fortiTreated);
+    document.getElementById('forti-info').textContent=`${fortiNodes.length} rule(s)${fortiTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
+  }
+  if(force||tab==='pa'){
+    const paTreated=document.getElementById('b-pa-treated')?.dataset.on==='1';
+    const paDisable=document.getElementById('b-pa-disable')?.dataset.on==='1';
+    const paNodes=baseNodes.filter(n=>(paTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+    document.getElementById('pa-out').textContent=genPaloAlto(paNodes,pol?.name||'policy',paDisable,paTreated);
+    document.getElementById('pa-info').textContent=`${paNodes.length} rule(s)${paTreated?'':S.treated.size>0?' ('+S.treated.size+' traités exclus)':''}`;
+  }
+  if(force||tab==='csv'){
+    const csvTreated=document.getElementById('b-csv-treated')?.dataset.on==='1';
+    const csvNodes=baseNodes.filter(n=>(csvTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+    const csv=genCSV(csvNodes,csvTreated);
+    document.getElementById('csv-prev').textContent=csv;
+    document.getElementById('csv-info').textContent=`${csvNodes.length} rows`;
+    document.getElementById('xlsx-info').textContent=`${csvNodes.length} rules + ${dedup(S.flows).length} flows`;
+  }
+  if(force||tab==='xlsx'){
+    const csvTreated=document.getElementById('b-csv-treated')?.dataset.on==='1';
+    const csvNodes=baseNodes.filter(n=>(csvTreated||!S.treated.has(nodeSig(n)))&&hasValidNode(n));
+    document.getElementById('xlsx-info').textContent=`${csvNodes.length} rules + ${dedup(S.flows).length} flows`;
+  }
 }
 function switchHubTab(ht){
   S.hubTab=ht;
   document.querySelectorAll('.tab[data-ht]').forEach(t=>t.classList.toggle('act',t.dataset.ht===ht));
   document.querySelectorAll('.tab-pane[data-hp]').forEach(p=>p.classList.toggle('act',p.dataset.hp===ht));
+  // Régénère l'onglet activé (lazy — les autres ne sont générés qu'à la demande)
+  if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+}
+
+// ================================================================
+// UTILITAIRES ARBRE
+// ================================================================
+// minCidrList et removeNodes : hissées au module (étaient redéfinies inline dans mergeSelectedNodes)
+function minCidrList(cidrs,isV6){
+  const hostPfx=isV6?128:32;
+  const hosts=cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)===hostPfx);
+  const nets =cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)!==hostPfx);
+  let aggNets=nets;
+  if(nets.length>1){
+    const ips=nets.map(c=>c.split('/')[0]);
+    const res=isV6?minCidr6(ips):minCidr4(ips);
+    if(res)aggNets=[res.cidr];
+  }
+  return[...new Set([...aggNets,...hosts])];
+}
+function removeNodes(ns,ids){
+  const out=[];
+  for(const n of ns){
+    if(ids.has(n.id))continue;
+    n.children=removeNodes(n.children,ids);
+    out.push(n);
+  }
+  return out;
+}
+function findNodeById(ns,id){
+  for(const n of ns){
+    if(n.id===id)return n;
+    const f=findNodeById(n.children||[],id);
+    if(f)return f;
+  }
+  return null;
 }
 
 // ================================================================
@@ -3235,12 +3434,15 @@ function renderExplorer(){
   const order=S.expDimOrder;
   const search=(S.expSearch||'').toLowerCase();
 
-  // Build flows from active tree nodes
-  const seenF=new Set();
-  let flows=getAllActive(S.tree).flatMap(n=>n.flows).filter(f=>{
-    const k=f.srcip+'|'+f.dstip+'|'+f.svcKey;
-    if(seenF.has(k))return false;seenF.add(k);return true;
-  });
+  // Build flows — cache S._explorerFlows, invalidé par renderTree
+  if(!S._explorerFlows){
+    const seenF=new Set();
+    S._explorerFlows=getAllActive(S.tree).flatMap(n=>n.flows).filter(f=>{
+      const k=f.srcip+'|'+f.dstip+'|'+f.svcKey;
+      if(seenF.has(k))return false;seenF.add(k);return true;
+    });
+  }
+  let flows=S._explorerFlows; // filtré ci-dessous sans muter le cache
 
   // Apply drill selections
   for(const step of drill){
@@ -3398,7 +3600,7 @@ function renderExplorer(){
   // FL NR badges are display-only (no tooltip in FL)
 }
 
-function highlightTreeNode(srcip,dst,svcName){
+function highlightTreeNode(srcip,dst,svcName,_expanded=false){
   // Find the node in the tree that covers this src+dst+svc combination
   if(!S.tree||!srcip||!dst)return;
 
@@ -3414,13 +3616,14 @@ function highlightTreeNode(srcip,dst,svcName){
   if(!bestNode)bestNode=active.find(n=>n.flows.some(f=>f.srcip===srcip&&f.dstip===dst&&(!svcName||f.svcKey===svcName)));
 
   if(!bestNode){
-    // Node might be collapsed — try to expand to find it
+    // Node might be collapsed — try to expand to find it (une seule tentative)
+    if(_expanded){setStatus(`Flow ${srcip}→${dst} — introuvable même après expansion`);return;}
     setStatus(`Flow ${srcip}→${dst} [${svcName}] — expanding tree to locate…`);
     // Expand all and retry
     function ea(ns){for(const n of ns){if(n.children.length){n.expanded=true;n.active=false;n.manualOverride=true;ea(n.children);}else n.active=true;}}
     ea(S.tree);renderTree();updateUI();
-    // Retry after render
-    setTimeout(()=>highlightTreeNode(srcip,dst,svcName),100);
+    // Retry after render — _expanded=true pour bloquer toute récursion supplémentaire
+    setTimeout(()=>highlightTreeNode(srcip,dst,svcName,true),100);
     return;
   }
 
@@ -3460,19 +3663,7 @@ function mergeSelectedNodes(){
   // Also deduplicate children that are identical (same srcs+dsts+svcs)
   // srcs/dsts/svcs already deduped by Set above
 
-  // Aggregate only network CIDRs (not /32 or /128 hosts — keep those distinct)
-  function minCidrList(cidrs,isV6){
-    const hostPfx=isV6?128:32;
-    const hosts=cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)===hostPfx);
-    const nets =cidrs.filter(c=>parseInt(c.split('/')[1]||hostPfx)!==hostPfx);
-    let aggNets=nets;
-    if(nets.length>1){
-      const ips=nets.map(c=>c.split('/')[0]);
-      const res=isV6?minCidr6(ips):minCidr4(ips);
-      if(res)aggNets=[res.cidr];
-    }
-    return[...new Set([...aggNets,...hosts])];
-  }
+  // Aggregate only network CIDRs — minCidrList() est définie au niveau module
   const isV6=sel.some(n=>n.isV6);
   const mergedSrcs=minCidrList(allSrcs,isV6);
   const mergedDsts=minCidrList(allDsts,isV6);
@@ -3511,18 +3702,10 @@ function mergeSelectedNodes(){
   mergedNode.isMerged=true;
   mergedNode.srcintfs=[...new Set(srcintfs)];
   mergedNode.dstintfs=[...new Set(dstintfs)];
+  mergedNode._sig=null; // forcer recalcul (srcs/dsts ont changé après makeNode)
   mergedNode.mergedFrom=sel.map(n=>({...n})); // shallow copy for unmerge
 
-  // Remove selected nodes from tree and insert merged node
-  function removeNodes(ns,ids){
-    const out=[];
-    for(const n of ns){
-      if(ids.has(n.id)){continue;}
-      n.children=removeNodes(n.children,ids);
-      out.push(n);
-    }
-    return out;
-  }
+  // Remove selected nodes — removeNodes() est définie au niveau module
   const selIds=new Set(sel.map(n=>n.id));
   // Find insertion point: first selected node's position in root or its parent
   // Simplest: insert merged node at root level after removing originals
@@ -3559,12 +3742,7 @@ function renderPolList(query=''){
   const filtered=q?pols.filter(([id,p])=>p.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)):pols;
   if(!filtered.length){list.innerHTML='<div class="pol-none">No match</div>';list.style.display='block';return;}
   list.innerHTML=filtered.map(([id,p])=>`<div class="pol-item${S.selPol===id?' act':''}" data-pid="${id}"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);margin-right:5px">ID${id}</span>${p.name}<span style="font-size:10px;color:var(--t3);margin-left:6px">${p.flows.length.toLocaleString('fr-FR')} fl.</span></div>`).join('');
-  list.querySelectorAll('.pol-item').forEach(el=>el.addEventListener('click',()=>{
-    const pid=el.dataset.pid;
-    input.value=`ID${pid} — ${S.policies[pid]?.name||pid}`;
-    list.style.display='none';
-    loadPolicy(pid);
-  }));
+  // Pas de addEventListener ici — délégué sur #pol-list au DOMContentLoaded (voir _initPolListDelegate)
   list.style.display='block';
 }
 
@@ -3572,6 +3750,7 @@ function renderPolList(query=''){
 // POLICY LOAD
 // ================================================================
 function loadPolicy(pid){
+  invalidateNRCache();
   S.selPol=pid;
   const pol=S.policies[pid];if(!pol)return;
   // Update search input display
@@ -3584,9 +3763,12 @@ function loadPolicy(pid){
     document.getElementById('h-flows').textContent=S.flows.length;
     document.getElementById('h-nr').textContent=S.flows.filter(f=>f.noReturn).length;
     const all=dedup(S.flows);
-    document.getElementById('t-src').textContent=[...new Set(all.map(f=>f.srcip))].length;
-    document.getElementById('t-dst').textContent=[...new Set(all.map(f=>f.dstip))].length;
-    document.getElementById('t-svc').textContent=[...new Set(all.map(f=>f.svcKey))].length;
+    // 1 passe pour les 3 Sets (au lieu de 3 all.map séparés)
+    const _srcs=new Set(),_dsts=new Set(),_svcs=new Set();
+    for(const f of all){_srcs.add(f.srcip);_dsts.add(f.dstip);_svcs.add(f.svcKey);}
+    document.getElementById('t-src').textContent=_srcs.size;
+    document.getElementById('t-dst').textContent=_dsts.size;
+    document.getElementById('t-svc').textContent=_svcs.size;
     document.getElementById('t-tot').textContent=all.length;
     const flows=activeFlows();
     S.tree=buildTree(flows);S.curve=computeCurve(S.tree);S.optimalPerm=null;
@@ -3604,55 +3786,68 @@ function loadPolicy(pid){
 // ================================================================
 // FILE LOAD
 // ================================================================
-function loadFile(file){
+// Helper : yield au moteur de rendu avec message de chargement
+function _yieldUI(msg,delay=30){
+  if(msg)setLoad(true,msg);
+  return new Promise(r=>setTimeout(r,delay));
+}
+async function loadFile(file){
   setLoad(true,'Reading file…');
-  const r=new FileReader();
-  r.onload=e=>{
-    const text=e.target.result;
-    setLoad(true,'Detecting format…');
-    setTimeout(()=>{
-      const fmt=detectFormat(text);S.fileSource=fmt;
-      setLoad(true,`Parsing ${fmt==='pa'?'Palo Alto CSV':'FortiGate'} logs…`);
-      setTimeout(()=>{
-        S.policies=parseFile(text,fmt);
-        // Enable and populate policy search
-        const polSrch=document.getElementById('pol-search');
-        polSrch.disabled=false;
-        polSrch.placeholder='Search policy…';
-        polSrch.value='';
-        renderPolList('');
-        const tot=Object.values(S.policies).reduce((a,p)=>a+p.flows.length,0);
-        // Auto-select if only one policy
-        const pids=Object.keys(S.policies);
-        if(pids.length===1){
-          document.getElementById('pol-list').style.display='none';
-          loadPolicy(pids[0]);
-        }
-        const fi=document.getElementById('finfo');fi.style.display='block';
-        fi.textContent=`✓ ${file.name} [${fmt.toUpperCase()}] · ${Object.keys(S.policies).length} policies · ${tot} flows`;
-        document.getElementById('uz').style.borderColor='var(--gr)';
-        const badge=document.getElementById('src-badge-hdr');
-        badge.textContent=fmt==='pa'?'PA':'Forti';
-        badge.className=`src-badge ${fmt==='pa'?'src-pa':'src-forti'}`;
-        badge.style.display='inline';
-        // Show clear all + CLI commands
-        document.getElementById('btn-clear-all').classList.add('visible');
-        document.getElementById('objdb-cmd-section').style.display='block';
-        // Show obj-db dropzone now that we know the vendor
-        const isPA=fmt==='pa';
-        const hint=document.getElementById('objdb-hint');
-        const dz=document.getElementById('objdb-main-dz');
-        const dzLabel=document.getElementById('objdb-dz-label');
-        hint.textContent=isPA
-          ?'Upload a Palo Alto CLI dump: show address · show service'
-          :'Upload a FortiGate CLI dump: show firewall address · address6 · service custom';
-        dzLabel.innerHTML=`<strong>Drop</strong> or click — ${isPA?'PA':'FortiGate'} CLI config`;
-        dz.style.display='block';
-        setLoad(false);setStatus(`${tot} logs loaded [${fmt.toUpperCase()}] — Select a policy`,true);
-      },80);
-    },30);
-  };
-  r.readAsText(file);
+  let text;
+  try{
+    text=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=e=>res(e.target.result);
+      r.onerror=()=>rej(new Error('Cannot read file'));
+      r.readAsText(file);
+    });
+  }catch(err){setLoad(false);setStatus('⚠ Impossible de lire le fichier');return;}
+
+  let fmt;
+  try{
+    await _yieldUI('Detecting format…',30);
+    fmt=detectFormat(text);S.fileSource=fmt;
+  }catch(err){setLoad(false);setStatus(`⚠ Erreur de détection du format : ${err.message}`);console.error('FireAPG — erreur détection format:',err);return;}
+
+  try{
+    await _yieldUI(`Parsing ${fmt==='pa'?'Palo Alto CSV':'FortiGate'} logs…`,80);
+    S.policies=parseFile(text,fmt);
+    const polSrch=document.getElementById('pol-search');
+    polSrch.disabled=false;
+    polSrch.placeholder='Search policy…';
+    polSrch.value='';
+    renderPolList('');
+    const tot=Object.values(S.policies).reduce((a,p)=>a+p.flows.length,0);
+    const pids=Object.keys(S.policies);
+    if(pids.length===1){
+      document.getElementById('pol-list').style.display='none';
+      loadPolicy(pids[0]);
+    }
+    const fi=document.getElementById('finfo');fi.style.display='block';
+    fi.textContent=`✓ ${file.name} [${fmt.toUpperCase()}] · ${Object.keys(S.policies).length} policies · ${tot} flows`;
+    document.getElementById('uz').style.borderColor='var(--gr)';
+    const badge=document.getElementById('src-badge-hdr');
+    badge.textContent=fmt==='pa'?'PA':'Forti';
+    badge.className=`src-badge ${fmt==='pa'?'src-pa':'src-forti'}`;
+    badge.style.display='inline';
+    document.getElementById('btn-clear-all').classList.add('visible');
+    document.getElementById('objdb-cmd-section').style.display='block';
+    const isPA=fmt==='pa';
+    const hint=document.getElementById('objdb-hint');
+    const dz=document.getElementById('objdb-main-dz');
+    const dzLabel=document.getElementById('objdb-dz-label');
+    hint.textContent=isPA
+      ?'Upload a Palo Alto CLI dump: show address · show service'
+      :'Upload a FortiGate CLI dump: show firewall address · address6 · service custom';
+    dzLabel.innerHTML=`<strong>Drop</strong> or click — ${isPA?'PA':'FortiGate'} CLI config`;
+    dz.style.display='block';
+    setLoad(false);setStatus(`${tot} logs loaded [${fmt.toUpperCase()}] — Select a policy`,true);
+  }catch(err){
+    setLoad(false);
+    setStatus(`⚠ Erreur de parsing : ${err.message}`);
+    console.error('FireAPG — erreur parsing logs:',err);
+    document.getElementById('uz').style.borderColor='var(--rd)';
+  }
 }
 
 // ================================================================
@@ -3661,16 +3856,10 @@ function loadFile(file){
 document.addEventListener('DOMContentLoaded',()=>{
   // Clear All button
   document.getElementById('btn-clear-all').addEventListener('click',()=>{
-    // Reset full state
-    S.policies={};S.selPol=null;S.flows=[];S.tree=null;S.perm=80;
-    S.curve={pts:[],nat:[]};S.optimalPerm=null;
-    S.anchorMode='auto';S.fixSrc=false;S.fixDst=false;
-    S.nrMode='none';S.nrExcludedDsts=new Set();
-    S.treated=new Set();S.treatedNotes=new Map();
-    S.nrExcludedSrcs=new Set();
-    S.fileSource=null;S.expDrill=[];S.expSearch='';
-    S.objDb={forti:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}},pa:{addrIndex:{},addr6Index:{},svcIndex:{},zone:{}}};
-    S._highlightId=null;
+    // Reset full state — themeOverride conservé (préférence utilisateur)
+    const savedTheme=S.themeOverride;
+    Object.assign(S,getInitialState());
+    S.themeOverride=savedTheme;
     // Reset UI elements
     document.getElementById('finfo').style.display='none';
     document.getElementById('finfo').textContent='';
@@ -3710,10 +3899,26 @@ document.addEventListener('DOMContentLoaded',()=>{
     S.nrMode='none';
     document.querySelectorAll('.nr-mode-btn').forEach(b=>b.classList.toggle('act',b.dataset.nrm==='none'));
     document.getElementById('btn-clear-all').classList.remove('visible');
+    invalidateNRCache();
     renderGraph({pts:[],nat:[]},80);
     setPerm(80);
     setStatus('Idle — Import a log file');
   });
+
+  // Event delegation sur pol-list — 1 listener permanent au lieu de N à chaque render
+  (function _initPolListDelegate(){
+    const list=document.getElementById('pol-list');
+    const input=document.getElementById('pol-search');
+    list.addEventListener('click',e=>{
+      const el=e.target.closest('.pol-item');
+      if(!el)return;
+      const pid=el.dataset.pid;
+      if(!pid)return;
+      input.value=`ID${pid} — ${S.policies[pid]?.name||pid}`;
+      list.style.display='none';
+      loadPolicy(pid);
+    });
+  })();
 
   // Log file upload
   const fi=document.getElementById('fi'),uz=document.getElementById('uz');
@@ -3752,6 +3957,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     S.nrMode=btn.dataset.nrm;
     document.querySelectorAll('.nr-mode-btn').forEach(b=>b.classList.toggle('act',b.dataset.nrm===S.nrMode));
     if(S.selPol){
+      invalidateNRCache();
       const flows=activeFlows();S.tree=buildTree(flows);S.curve=computeCurve(S.tree);
       S.optimalPerm=null;resetOvr(S.tree);applyPerm(S.tree,S.perm);
       renderGraph(S.curve,S.perm);renderTree();updateUI();
@@ -3771,9 +3977,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     S.expDrill=[];S.expSearch='';
   });
 
-  // Flow Lens search
+  // Flow Lens search — debounce 150ms pour éviter re-rendu à chaque frappe
+  let _flSearchTimer=null;
   document.addEventListener('input',e=>{
-    if(e.target.id==='fl-search'){S.expSearch=e.target.value;renderExplorer();}
+    if(e.target.id==='fl-search'){
+      S.expSearch=e.target.value;
+      clearTimeout(_flSearchTimer);
+      _flSearchTimer=setTimeout(renderExplorer,150);
+    }
   });
 
   // Tree actions
@@ -3824,7 +4035,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
     popup.style.display='none';
     renderTree();updateUI();
-    if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+    if(_elHubp.classList.contains('open'))refreshHub();
     setStatus(`${sigs.length} règle(s) marquée(s) comme traitée(s)`,true);
   });
 
@@ -3842,34 +4053,94 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // ── UNTREAT + RESTORE clicks (delegated on tree-c) ────────────
-  document.getElementById('tree-c').addEventListener('click',e=>{
-    // Untreat
+  // ── LISTENERS DÉLÉGUÉS sur tree-c ────────────────────────────
+  // Enregistrés une seule fois à l'init. renderTree() ne réenregistre plus rien.
+  // Ordre critique dans le click handler : spécifique → général
+  // (excl-dst et unmerge sont des enfants de nœuds qui ont aussi data-t)
+  const treeC=document.getElementById('tree-c');
+  // Refs DOM cachées — ne changent jamais, évite getElementById à chaque clic
+  const _elHubp=document.getElementById('hubp');
+
+  treeC.addEventListener('click',e=>{
+    // 1. Untreat (badge "✓ Traité" cliquable)
     const untreatSig=e.target.closest('[data-untreat]')?.dataset.untreat;
     if(untreatSig){
       e.stopPropagation();
-      S.treated.delete(untreatSig);
-      S.treatedNotes.delete(untreatSig);
+      S.treated.delete(untreatSig);S.treatedNotes.delete(untreatSig);
       renderTree();updateUI();
-      if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+      if(_elHubp.classList.contains('open'))refreshHub();
       setStatus('Règle démarquée',true);
       return;
     }
-    // Restore excluded destinations for a node
+    // 2. Restore excluded destinations
     const restoreNodeId=e.target.closest('[data-restore-node]')?.dataset.restoreNode;
     if(restoreNodeId){
       e.stopPropagation();
-      // Find node by id in tree and restore its dsts
-      function findNode(ns,id){for(const n of ns){if(n.id===id)return n;const f=findNode(n.children||[],id);if(f)return f;}return null;}
-      const node=findNode(S.tree||[],restoreNodeId);
+      const node=findNodeById(S.tree||[],restoreNodeId);
       if(node){
         node.dsts.forEach(d=>S.nrExcludedDsts.delete(d.split('/')[0]));
         node.srcs.forEach(s=>S.nrExcludedSrcs.delete(s.split('/')[0]));
         renderTree();updateUI();
-        if(document.getElementById('hubp').classList.contains('open'))refreshHub();
+        if(_elHubp.classList.contains('open'))refreshHub();
         setStatus('Destinations rétablies',true);
       }
+      return;
     }
+    // 3. Exclusion IP NR (× sur les dst-tags) — avant data-t car enfant d'un nœud
+    const exclEl=e.target.closest('[data-excl-dst]');
+    if(exclEl){
+      e.stopPropagation();
+      const ip=exclEl.dataset.exclDst;
+      if(S.nrExcludedDsts.has(ip)){S.nrExcludedDsts.delete(ip);setStatus(`Reactivated ${ip}`,true);}
+      else{S.nrExcludedDsts.add(ip);setStatus(`Excluded ${ip} from export`,true);}
+      renderTree();updateUI();
+      return;
+    }
+    // 4. Unmerge — avant data-t car enfant d'un nœud mergé
+    const unmergeEl=e.target.closest('[data-unmerge]');
+    if(unmergeEl){
+      e.stopPropagation();
+      unmergeNode(unmergeEl.dataset.unmerge);
+      return;
+    }
+    // 5. Checkbox sélection — avant data-t car enfant du nœud
+    const ckEl=e.target.closest('[data-ck]');
+    if(ckEl){
+      e.stopPropagation();
+      setSel(S.tree,ckEl.dataset.ck,ckEl.classList.contains('ck')?false:true);
+      renderTree();updateUI();
+      return;
+    }
+    // 6. Toggle expand/collapse — en dernier (conteneur parent)
+    const togEl=e.target.closest('[data-t]');
+    if(togEl){
+      e.stopPropagation();
+      toggleNode(S.tree,togEl.dataset.t);
+      renderTree();updateUI();
+    }
+  });
+
+  // Tooltips NR et NAT — mouseover/mouseout (mouseenter/leave ne bubblent pas)
+  // On vérifie relatedTarget pour éviter les faux déclenchements sur les enfants
+  treeC.addEventListener('mouseover',e=>{
+    const nrEl=e.target.closest('[data-nr-tip]');
+    if(nrEl){
+      const svcs=nrEl.dataset.nrTip||'—';
+      const cat=nrEl.dataset.nrCat||'';
+      const label=NR_TIP_LABEL[cat]||'No-return';
+      showTip(e,`<div style="font-weight:700;margin-bottom:4px">${label}</div><div style="font-size:11px;color:var(--t2);line-height:1.7">${svcs}</div>`);
+      return;
+    }
+    const natEl=e.target.closest('[data-nat-tip]');
+    if(natEl){
+      showTip(e,`<div style="font-weight:700;margin-bottom:4px">🔵 NAT details</div><div style="font-size:11px;color:var(--t2);line-height:1.8">${natEl.dataset.natTip||'—'}</div>`);
+    }
+  });
+  treeC.addEventListener('mouseout',e=>{
+    const nrEl=e.target.closest('[data-nr-tip]');
+    if(nrEl&&!nrEl.contains(e.relatedTarget)){hideTip();return;}
+    const natEl=e.target.closest('[data-nat-tip]');
+    if(natEl&&!natEl.contains(e.relatedTarget))hideTip();
   });
 
   // ── THEME TOGGLE ──────────────────────────────────────────────
@@ -3992,25 +4263,30 @@ document.addEventListener('DOMContentLoaded',()=>{
   function loadObjDbFile(file){
     const r=new FileReader();
     r.onload=e=>{
-      const text=e.target.result;
-      const vendor=S.fileSource==='pa'?'pa':'forti';
-      const db=vendor==='forti'?parseFortiObjDB(text):parsePAObjDB(text);
-      S.objDb[vendor].addrIndex=db.addrIndex;
-      S.objDb[vendor].addr6Index=db.addr6Index;
-      S.objDb[vendor].svcIndex=db.svcIndex;
-      S.objDb[vendor].zone=db.zone||{};
-      const aCount=Object.keys(db.addrIndex||{}).length+Object.keys(db.addr6Index||{}).length;
-      const sCount=Object.keys(db.svcIndex||{}).length;
-      const zCount=Object.keys(db.zone||{}).length;
-      const zUniq=new Set(Object.values(db.zone||{})).size;
-      const badge=document.getElementById('objdb-main-badge');
-      badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zUniq} zones (${zCount} intf)`:''}`;
-      badge.classList.remove('empty');
-      document.getElementById('objdb-clear-btn').style.display='inline';
-      // Auto-activate show object names
-      setStatus(`Object DB: ${aCount} addresses, ${sCount} services loaded`,true);
-      if(S.tree){renderTree();refreshHub();}
+      try{
+        const text=e.target.result;
+        const vendor=S.fileSource==='pa'?'pa':'forti';
+        const db=vendor==='forti'?parseFortiObjDB(text):parsePAObjDB(text);
+        S.objDb[vendor].addrIndex=db.addrIndex;
+        S.objDb[vendor].addr6Index=db.addr6Index;
+        S.objDb[vendor].svcIndex=db.svcIndex;
+        S.objDb[vendor].zone=db.zone||{};
+        const aCount=Object.keys(db.addrIndex||{}).length+Object.keys(db.addr6Index||{}).length;
+        const sCount=Object.keys(db.svcIndex||{}).length;
+        const zCount=Object.keys(db.zone||{}).length;
+        const zUniq=new Set(Object.values(db.zone||{})).size;
+        const badge=document.getElementById('objdb-main-badge');
+        badge.textContent=`✓ ${aCount} addr · ${sCount} svc${zCount?` · ${zUniq} zones (${zCount} intf)`:''}`;
+        badge.classList.remove('empty');
+        document.getElementById('objdb-clear-btn').style.display='inline';
+        setStatus(`Object DB: ${aCount} addresses, ${sCount} services loaded`,true);
+        if(S.tree){renderTree();refreshHub();}
+      }catch(err){
+        setStatus(`⚠ Erreur ObjDB : ${err.message}`);
+        console.error('FireAPG — erreur parsing ObjDB:',err);
+      }
     };
+    r.onerror=()=>setStatus('⚠ Impossible de lire le fichier ObjDB');
     r.readAsText(file);
   }
   const objFi=document.getElementById('objdb-main-fi');
@@ -4039,5 +4315,371 @@ document.addEventListener('DOMContentLoaded',()=>{
   setStatus('Idle — Import a log file');
 });
 </script>
+
+<!-- ── HELP PANEL ─────────────────────────────────────────── -->
+<div class="help-panel" id="help-panel">
+  <div class="help-phdr">
+    <div class="help-phdr-left">📖 <span id="help-panel-title">FireAPG — Help</span></div>
+    <button class="help-phdr-close" id="help-panel-close">✕</button>
+  </div>
+  <div class="help-body" id="help-body">
+
+    <!-- INDEX (affiché quand rien n'est survolé) -->
+    <div class="help-topic active" id="htopic-index">
+      <h2>📖 FireAPG — Guide</h2>
+      <p class="hl">Survole n'importe quel élément de l'interface pour voir son aide contextuelle ici. Ou clique sur un sujet ci-dessous.</p>
+      <div class="help-nav-pills">
+        <span class="help-pill act" data-topic="index">Accueil</span>
+        <span class="help-pill" data-topic="import">Import</span>
+        <span class="help-pill" data-topic="policy">Policy</span>
+        <span class="help-pill" data-topic="objdb">ObjDB</span>
+        <span class="help-pill" data-topic="graph">Graphe</span>
+        <span class="help-pill" data-topic="slider">Slider</span>
+        <span class="help-pill" data-topic="anchor">Ancrage</span>
+        <span class="help-pill" data-topic="noreturn">No-Return</span>
+        <span class="help-pill" data-topic="rei">REI</span>
+        <span class="help-pill" data-topic="badges">Badges</span>
+        <span class="help-pill" data-topic="merge">Merge</span>
+        <span class="help-pill" data-topic="treated">Traité</span>
+        <span class="help-pill" data-topic="export">Export</span>
+        <span class="help-pill" data-topic="flowlens">Flow Lens</span>
+        <span class="help-pill" data-topic="traffic">Traffic</span>
+        <span class="help-pill" data-topic="nat">NAT</span>
+        <span class="help-pill" data-topic="autooptimize">Auto-Opt.</span>
+        <span class="help-pill" data-topic="insights">Insights</span>
+      </div>
+      <h3>Workflow rapide</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">1</span><span class="hkv">Importer un fichier de logs (FortiGate ou Palo Alto CSV)</span></div>
+        <div class="hkr"><span class="hkk">2</span><span class="hkv">Charger l'ObjDB optionnellement pour nommer les objets</span></div>
+        <div class="hkr"><span class="hkk">3</span><span class="hkv">Sélectionner une policy dans le panneau gauche</span></div>
+        <div class="hkr"><span class="hkk">4</span><span class="hkv">Ajuster le slider et le mode d'ancrage</span></div>
+        <div class="hkr"><span class="hkk">5</span><span class="hkv">Exporter en CLI FortiGate, PA, CSV ou Excel</span></div>
+      </div>
+      <div class="htip">💡 <strong>⚡ Auto-Optimize</strong> trouve automatiquement le meilleur seuil de permissivité.</div>
+    </div>
+
+    <!-- IMPORT -->
+    <div class="help-topic" id="htopic-import">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>📂 Import de logs</h2>
+      <p class="hl">Glisse ton fichier dans la zone de dépôt. Le format est détecté automatiquement. Seuls les logs <code>accept</code> / <code>allow</code> sont traités — les deny sont ignorés.</p>
+      <h3>Formats supportés</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">FortiGate</span><span class="hkv">Syslog texte. Champs requis : srcip, dstip, proto, dstport, action, policyid, sentbyte, rcvdbyte.</span></div>
+        <div class="hkr"><span class="hkk">Palo Alto</span><span class="hkv">Export CSV. Champs requis : Source/Dest address, IP Protocol, Destination Port, Rule, Bytes Sent/Received.</span></div>
+      </div>
+      <h3>No-return</h3>
+      <p>Détecté quand <code>sentbyte &gt; 0</code> ET <code>rcvdbyte = 0</code> — des bytes envoyés mais zéro reçu. Connexion refusée, bloquée, ou hôte injoignable.</p>
+      <div class="hwarn">⚠️ Sur les très gros fichiers (&gt;100k lignes), le parsing peut prendre quelques secondes.</div>
+    </div>
+
+    <!-- POLICY -->
+    <div class="help-topic" id="htopic-policy">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🎯 Sélecteur de policy</h2>
+      <p class="hl">Les logs sont regroupés par <code>policyid</code> (FortiGate) ou par champ <code>Rule</code> (Palo Alto). Chaque policy est analysée indépendamment.</p>
+      <p>Si une seule policy est présente, elle est sélectionnée automatiquement. Le champ de recherche filtre la liste par nom ou ID.</p>
+      <div class="hwarn">⚠️ Si les logs PA proviennent de plusieurs firewalls, un avertissement s'affiche. Les règles ne sont pas séparées par device.</div>
+    </div>
+
+    <!-- OBJDB -->
+    <div class="help-topic" id="htopic-objdb">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🗂 Object Database</h2>
+      <p class="hl">Résout les CIDRs et ports en noms d'objets existants sur ton firewall. Sans ObjDB, des noms sont générés automatiquement (<code>Host-10.0.0.1</code>, <code>TCP-8443</code>…).</p>
+      <h3>FortiGate — commandes</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">show firewall address</span><span class="hkv">Objets adresse IPv4</span></div>
+        <div class="hkr"><span class="hkk">show firewall address6</span><span class="hkv">Objets adresse IPv6</span></div>
+        <div class="hkr"><span class="hkk">show firewall service custom</span><span class="hkv">Objets service</span></div>
+        <div class="hkr"><span class="hkk">show system zone</span><span class="hkv">Résolution interface → zone</span></div>
+      </div>
+      <h3>Palo Alto — commandes</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">show address</span><span class="hkv">Objets adresse</span></div>
+        <div class="hkr"><span class="hkk">show service</span><span class="hkv">Objets service</span></div>
+      </div>
+      <p>Formats bloc et <code>set</code> acceptés. Les <code>address-group</code> et <code>service-group</code> sont ignorés.</p>
+      <div class="htip">💡 L'ObjDB reste en mémoire navigateur — aucune donnée transmise.</div>
+    </div>
+
+    <!-- BALANCE GRAPH -->
+    <div class="help-topic" id="htopic-graph">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>📈 Balance Graph</h2>
+      <p class="hl">Visualise le compromis entre nombre de règles et leur permissivité. La courbe te permet de choisir le bon équilibre d'un coup d'œil.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk" style="border-color:var(--ac);color:var(--ac)">Courbe bleue</span><span class="hkv">Évolution du nombre de règles selon la permissivité.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:var(--ac2);color:var(--ac2)">Points bleus</span><span class="hkv">Points naturels de rupture — bons candidats pour le seuil.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:var(--yw);color:var(--yw)">Trait jaune</span><span class="hkv">Seuil actuellement sélectionné (slider).</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:var(--gr);color:var(--gr)">Point vert</span><span class="hkv">Seuil optimal calculé par Auto-Optimize.</span></div>
+      </div>
+      <p>Clique directement sur la courbe pour déplacer le slider à ce seuil.</p>
+    </div>
+
+    <!-- SLIDER -->
+    <div class="help-topic" id="htopic-slider">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🎛 Slider de permissivité</h2>
+      <p class="hl">Contrôle le niveau d'agrégation des flows. Score 0–100 par nœud : largeur des CIDRs (70%) + nombre de services (30%).</p>
+      <h3>Niveaux</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">0–10 Surgical</span><span class="hkv">Règles très précises (/32). Beaucoup de règles.</span></div>
+        <div class="hkr"><span class="hkk">11–35 Precise</span><span class="hkv">Légère agrégation. Bonne granularité.</span></div>
+        <div class="hkr"><span class="hkk">36–65 Balanced</span><span class="hkv">Compromis recommandé.</span></div>
+        <div class="hkr"><span class="hkk">66–80 Broad</span><span class="hkv">Supernets larges. Peu de règles.</span></div>
+        <div class="hkr"><span class="hkk">81–100 Very Broad</span><span class="hkv">Agrégation maximale.</span></div>
+      </div>
+      <h3>Score [N] sur les nœuds</h3>
+      <p>Le chiffre entre crochets est le score du nœud. Un nœud est <strong>actif</strong> quand score ≤ seuil. Au-dessus, il se déplie et expose ses enfants.</p>
+    </div>
+
+    <!-- ANCRAGE -->
+    <div class="help-topic" id="htopic-anchor">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🔒 Mode d'agrégation</h2>
+      <p class="hl">Contrôle si FireAPG peut agréger les sources et/ou destinations en supernets (ex: /32 + /32 → /30).</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">AUTO</span><span class="hkv">FireAPG choisit l'ancrage selon les patterns comportementaux (clustering Jaccard ≥ 60%).</span></div>
+        <div class="hkr"><span class="hkk">Fix SRC /32</span><span class="hkv">Sources toujours gardées en /32. Chaque machine source a sa propre règle.</span></div>
+        <div class="hkr"><span class="hkk">Fix DST /32</span><span class="hkv">Destinations toujours en /32. Utile pour des règles vers des serveurs précis.</span></div>
+      </div>
+      <p>Les deux cases peuvent être cochées simultanément — aucune agrégation CIDR ne sera faite.</p>
+    </div>
+
+    <!-- NO-RETURN -->
+    <div class="help-topic" id="htopic-noreturn">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>⚡ Filtre No-Return</h2>
+      <p class="hl">Contrôle quels flows "sans réponse" sont inclus dans l'arbre. Le filtre agit <strong>avant</strong> la construction — il reconstruit l'arbre entier.</p>
+      <h3>Tags de destination colorés</h3>
+      <p>Les destinations avec du trafic no-return sont entourées d'une bordure colorée selon la catégorie :</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk" style="border-color:var(--rd);color:var(--rd)">🔴 NR-TCP</span><span class="hkv">TCP sans réponse — connexion refusée, bloquée ou hôte injoignable.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:var(--nr);color:var(--nr)">🟠 NR-UDP?</span><span class="hkv">UDP no-return sur port inhabituel. Potentiellement suspect.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:var(--yw);color:var(--yw)">🟡 NR-UDP</span><span class="hkv">UDP one-way normal (DNS, NTP, Syslog…). Comportement attendu.</span></div>
+      </div>
+      <h3 id="help-excl-anchor">Bouton × — Exclusion d'export</h3>
+      <div class="hwarn">⚠️ Le <strong>×</strong> n'est <u>pas</u> un filtre d'arbre — il exclut l'IP de l'export <strong>uniquement</strong>. L'arbre n'est pas reconstruit.</div>
+      <p>Quand tu cliques <strong>×</strong> sur un tag destination :</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">Effet visuel</span><span class="hkv">Le tag passe en grisé barré. Le bouton devient ↩ pour réactiver.</span></div>
+        <div class="hkr"><span class="hkk">Effet export</span><span class="hkv">L'IP est retirée des destinations dans le CLI et le CSV générés.</span></div>
+        <div class="hkr"><span class="hkk">Effet arbre</span><span class="hkv">Aucun — le nœud reste visible. Si toutes les destinations sont exclues, le nœud affiche le badge ⚠ et sera absent de l'export.</span></div>
+      </div>
+      <p>Cas d'usage : une IP a 90% de flows normaux + quelques NR. Tu veux la garder dans l'analyse mais l'exclure de l'export pour un nœud précis, sans toucher aux autres nœuds ni reconstruire l'arbre.</p>
+      <div class="htip">💡 Pour retirer les flows NR de <strong>tout l'arbre</strong>, utilise les boutons "Excl. 🔴 TCP" ou "Excl. non-normal" dans le panneau gauche.</div>
+      <h3>Modes de filtrage (panneau gauche)</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">Show all</span><span class="hkv">Tous les flows dans l'arbre. NR signalés visuellement uniquement.</span></div>
+        <div class="hkr"><span class="hkk">Excl. 🔴 TCP</span><span class="hkv">Retire les flows TCP NR avant construction. L'arbre est reconstruit.</span></div>
+        <div class="hkr"><span class="hkk">Excl. non-normal</span><span class="hkv">Retire TCP NR + UDP suspect. Garde uniquement 🟡 UDP normaux.</span></div>
+      </div>
+    </div>
+
+    <!-- REI -->
+    <div class="help-topic" id="htopic-rei">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🌲 Rule Expansion Interface</h2>
+      <p class="hl">L'arbre central = les règles candidates. Chaque nœud = une règle agrégée. Les nœuds ＋/－ ont des enfants (règles plus granulaires).</p>
+      <h3>Lecture d'un nœud</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">SRC ↳</span><span class="hkv">Sources IP + interface/zone d'origine.</span></div>
+        <div class="hkr"><span class="hkk">DST ↳</span><span class="hkv">Destinations. Tags colorés = statut NR.</span></div>
+        <div class="hkr"><span class="hkk">SVC</span><span class="hkv">Services. Nom ObjDB si disponible.</span></div>
+        <div class="hkr"><span class="hkk">N fl.</span><span class="hkv">Nombre de flows couverts.</span></div>
+        <div class="hkr"><span class="hkk">[42]</span><span class="hkv">Score de permissivité (0–100).</span></div>
+      </div>
+      <h3>Actif vs grisé</h3>
+      <p>Nœud <strong>actif</strong> = sera exporté. Nœud <strong>grisé</strong> = score dépasse le seuil, ses enfants actifs le remplacent dans l'export.</p>
+    </div>
+
+    <!-- BADGES -->
+    <div class="help-topic" id="htopic-badges">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🏷 Badges des nœuds</h2>
+      <p class="hl">Survoler un badge affiche un tooltip avec le détail (liste des services ou IPs concernés).</p>
+      <div class="help-badge-ex"><span class="nb nnr-tcp">🔴 NR-TCP</span><span>TCP no-return dans ce nœud.</span></div>
+      <div class="help-badge-ex"><span class="nb nnr-udp-sus">🟠 NR-UDP?</span><span>UDP suspect (port non standard).</span></div>
+      <div class="help-badge-ex"><span class="nb nnr-udp-ok">🟡 NR-UDP</span><span>UDP one-way normal (DNS, NTP…).</span></div>
+      <div class="help-badge-ex"><span class="nb" style="background:var(--nat-snatl,#dbeafe);color:var(--nat-snat,#2563eb);border:1px solid currentColor">🔵 SNAT</span><span>Source NAT détecté. Tooltip : IPs translatées.</span></div>
+      <div class="help-badge-ex"><span class="nb" style="background:var(--pul);color:var(--pu);border:1px solid var(--pu)">⊕ Merged</span><span>Nœud issu d'un merge manuel. ✕ pour annuler.</span></div>
+      <div class="help-badge-ex"><span class="nb" style="background:var(--grl);color:var(--gr);border:1px solid var(--gr)">✓ Traité</span><span>Nœud marqué comme traité/validé.</span></div>
+      <div class="help-badge-ex"><span class="nb" style="background:var(--rdl);color:var(--rd);border:1px solid var(--rd)">⚠ Empty</span><span>Toutes les destinations exclues via ×. Absent de l'export.</span></div>
+    </div>
+
+    <!-- MERGE -->
+    <div class="help-topic" id="htopic-merge">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>⊕ Merge manuel</h2>
+      <p class="hl">Fusionne N nœuds sélectionnés en une seule règle (union des sources, destinations et services).</p>
+      <p>Sélectionne des nœuds avec les cases à cocher, puis clique <strong>⊕ Merge</strong> dans la toolbar.</p>
+      <h3>Règles de merge</h3>
+      <p>Les /32 (hôtes) sont toujours conservés distincts — seuls les réseaux (/1–/31) peuvent être agrégés en supernet. Les interfaces sont toutes conservées (multi-intf dans le CLI généré).</p>
+      <p>Clique ✕ sur le badge <em>⊕ Merged</em> pour annuler et retrouver les nœuds originaux.</p>
+    </div>
+
+    <!-- TRAITÉ -->
+    <div class="help-topic" id="htopic-treated">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>✓ Marquage Traité</h2>
+      <p class="hl">Marque des nœuds comme traités (validés, décidés). Le nœud se replie et affiche un badge vert.</p>
+      <p>Sélectionne des nœuds avec les cases à cocher, puis clique <strong>✓ Traité</strong>. Une popup propose d'ajouter une note libre (ex : "Validé — monitoring interne").</p>
+      <h3>Impact sur les exports</h3>
+      <p>Par défaut, les nœuds traités sont <strong>exclus</strong> de l'export (export "prêt à déployer"). Dans Export Hub, le toggle <em>Inclure les traités</em> permet de les réintégrer avec annotation.</p>
+      <div class="htip">💡 Le compteur <em>[N / total traités]</em> dans la topbar indique ta progression.</div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="help-topic" id="htopic-export">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>📦 Export Hub</h2>
+      <p class="hl">Génère les règles depuis les nœuds actifs. Si des nœuds sont cochés, seuls ceux-là sont exportés. Sinon, tous les nœuds actifs sont inclus.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">FortiGate CLI</span><span class="hkv">Blocs <code>config firewall address/service/policy</code>. Objets créés si absents de l'ObjDB.</span></div>
+        <div class="hkr"><span class="hkk">Palo Alto CLI</span><span class="hkv">Commandes <code>set address/service/security</code>. Multi-zone supporté.</span></div>
+        <div class="hkr"><span class="hkk">CSV</span><span class="hkv">Une ligne par règle. Colonnes ObjDB et zones si disponibles.</span></div>
+        <div class="hkr"><span class="hkk">Excel</span><span class="hkv">CSV + feuilles "Raw Flows" et "No-Return Flows".</span></div>
+      </div>
+      <h3>Options</h3>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">🔴 Add disabled</span><span class="hkv">Règles générées avec <code>status disable</code> — à importer sans activer.</span></div>
+        <div class="hkr"><span class="hkk">Inclure traités</span><span class="hkv">Réintègre les nœuds "Traité" dans l'export avec annotation.</span></div>
+      </div>
+    </div>
+
+    <!-- FLOW LENS -->
+    <div class="help-topic" id="htopic-flowlens">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🔍 Flow Lens</h2>
+      <p class="hl">Explorateur de flows bruts. Navigation par Source → Destination → Service (ordre libre).</p>
+      <h3>Navigation</h3>
+      <p>Clique sur une entrée pour "driller". Un fil d'Ariane montre ta position — clique dessus pour remonter. L'ordre des dimensions est personnalisable (boutons SRC / DST / SVC).</p>
+      <h3>Highlight REI</h3>
+      <p>Au niveau le plus profond, clique sur une entrée pour mettre en surbrillance le nœud REI correspondant. L'arbre s'expanse automatiquement si le nœud est collapsé.</p>
+      <div class="htip">💡 La recherche filtre sur la valeur brute ET sur le nom ObjDB simultanément.</div>
+    </div>
+
+
+    <!-- TRAFFIC SUMMARY -->
+    <div class="help-topic" id="htopic-traffic">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>📊 Traffic Summary</h2>
+      <p class="hl">Statistiques globales sur la policy sélectionnée — calculées sur l'ensemble des flows <code>accept</code>.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">Sources</span><span class="hkv">Nombre d'IPs sources distinctes observées.</span></div>
+        <div class="hkr"><span class="hkk">Destinations</span><span class="hkv">Nombre d'IPs destinations distinctes observées.</span></div>
+        <div class="hkr"><span class="hkk">Services</span><span class="hkv">Nombre de combinaisons proto/port distinctes.</span></div>
+        <div class="hkr"><span class="hkk">Total flows</span><span class="hkv">Nombre total de lignes de log acceptées pour cette policy.</span></div>
+      </div>
+      <p>Ces chiffres reflètent les flows bruts, avant agrégation. Le nombre de <em>règles</em> générées dans l'arbre sera toujours inférieur.</p>
+    </div>
+
+    <!-- NAT -->
+    <div class="help-topic" id="htopic-nat">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>🔵 Badges NAT</h2>
+      <p class="hl">Indique qu'au moins un flow de ce nœud a fait l'objet d'une translation d'adresse (NAT). Survoler le badge affiche les IPs et ports traduits.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk" style="border-color:#2563eb;color:#2563eb">🔵 SNAT</span><span class="hkv">Source NAT — l'IP source a été translatée (ex : masquerading, PAT). Tooltip : IP/port source après translation.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:#7c3aed;color:#7c3aed">🟣 DNAT</span><span class="hkv">Destination NAT — l'IP destination a été translatée (ex : port forwarding). Tooltip : IP/port destination réels.</span></div>
+        <div class="hkr"><span class="hkk" style="border-color:#0891b2;color:#0891b2">🔵 SNAT+DNAT</span><span class="hkv">Les deux types de NAT sont présents dans ce nœud.</span></div>
+      </div>
+      <p>Le NAT est détecté depuis les champs <code>transip</code> / <code>transport</code> (FortiGate) ou colonnes NAT (Palo Alto). Si ton export ne contient pas ces colonnes, les badges n'apparaissent pas.</p>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="help-topic" id="htopic-insights">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>💡 Security Insights</h2>
+      <p class="hl">Analyse automatique affichée après chargement d'une policy. Les insights sont informatifs — ils ne modifient pas l'arbre ni les exports.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">🔴 TCP no-return</span><span class="hkv">Flows TCP sans réponse. Pourcentage affiché. Peut indiquer des scans, des hôtes injoignables ou des règles permissives inutiles.</span></div>
+        <div class="hkr"><span class="hkk">🟠 UDP suspect</span><span class="hkv">UDP no-return sur ports non standards. Liste des ports concernés.</span></div>
+        <div class="hkr"><span class="hkk">🌍 Pays destination</span><span class="hkv">Pays vers lesquels du trafic a été observé (champ <code>dstcountry</code>).</span></div>
+        <div class="hkr"><span class="hkk">🧠 Clusters</span><span class="hkv">Sources regroupées par similarité comportementale (≥ 60% de destinations+services communs). Indique combien de fusions automatiques ont eu lieu.</span></div>
+        <div class="hkr"><span class="hkk">🚫 IPs exclues</span><span class="hkv">IPs exclues manuellement via × dans l'arbre. Cliquer sur l'insight pour voir la liste et les réactiver.</span></div>
+      </div>
+    </div>
+
+
+    <!-- AUTO-OPTIMIZE -->
+    <div class="help-topic" id="htopic-autooptimize">
+      <button class="help-back" data-back="index">← Retour</button>
+      <h2>⚡ Auto-Optimize</h2>
+      <p class="hl">Trouve automatiquement le seuil de permissivité qui minimise un score combiné : nombre de règles × permissivité moyenne × nombre de services distincts.</p>
+      <h3>Comment ça fonctionne</h3>
+      <p>FireAPG parcourt tous les seuils de 0 à 100, calcule le nombre de règles actives et leur score moyen à chaque niveau, puis sélectionne le point d'équilibre optimal. Le résultat est affiché comme point vert sur le Balance Graph.</p>
+      <div class="hk">
+        <div class="hkr"><span class="hkk">Résultat</span><span class="hkv">Le slider se positionne au seuil optimal. L'arbre est mis à jour.</span></div>
+        <div class="hkr"><span class="hkk">Point vert</span><span class="hkv">Visible sur le graphe — correspond au seuil trouvé.</span></div>
+        <div class="hkr"><span class="hkk">Override</span><span class="hkv">Tu peux ensuite bouger le slider manuellement pour t'écarter de l'optimal si besoin.</span></div>
+      </div>
+      <div class="htip">💡 Auto-Optimize respecte les <strong>manualOverride</strong> des nœuds que tu as manuellement développés ou repliés.</div>
+    </div>
+
+  </div><!-- /help-body -->
+</div><!-- /help-panel -->
+
+<script>
+(function(){
+  var panel   = document.getElementById('help-panel');
+  var btnOpen = document.getElementById('b-help');
+  var btnClose = document.getElementById('help-panel-close');
+  var helpBody = document.getElementById('help-body');
+
+  if(!panel || !btnOpen) return;
+
+  // ── open/close ──────────────────────────────────────────────
+  function openPanel(){
+    panel.classList.add('open');
+    document.body.classList.add('help-open');
+    btnOpen.classList.add('on');
+  }
+  function closePanel(){
+    panel.classList.remove('open');
+    document.body.classList.remove('help-open');
+    btnOpen.classList.remove('on');
+  }
+
+  btnOpen.onclick = function(){
+    if(panel.classList.contains('open')) closePanel();
+    else openPanel();
+  };
+  btnClose.onclick = closePanel;
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closePanel();
+  });
+
+  // ── show topic ───────────────────────────────────────────────
+  function showTopic(id){
+    helpBody.querySelectorAll('.help-topic').forEach(function(t){
+      t.classList.remove('active');
+    });
+    var target = document.getElementById('htopic-' + id);
+    if(target) target.classList.add('active');
+    else document.getElementById('htopic-index').classList.add('active');
+    helpBody.querySelectorAll('.help-pill').forEach(function(p){
+      p.classList.toggle('act', p.dataset.topic === id || (!id && p.dataset.topic === 'index'));
+    });
+    helpBody.scrollTop = 0;
+  }
+
+  // ── titre du panneau → retour index ────────────────────────
+  var panelTitle = panel.querySelector('.help-phdr-left');
+  if(panelTitle) panelTitle.onclick = function(){ showTopic('index'); };
+
+  // ── pills + bouton retour ────────────────────────────────────
+  helpBody.addEventListener('click', function(e){
+    var pill = e.target.closest('.help-pill');
+    if(pill && pill.dataset.topic){ showTopic(pill.dataset.topic); return; }
+    var back = e.target.closest('[data-back]');
+    if(back) showTopic(back.dataset.back);
+  });
+
+})();
+</script>
+
 </body>
 </html>
