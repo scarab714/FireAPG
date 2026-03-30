@@ -936,6 +936,7 @@ header,
           <button class="btn sm" id="b-sa">☑ All</button>
           <button class="btn sm" id="b-ua">☐ None</button>
           <button class="btn sm" id="b-merge" style="display:none;background:var(--pul);border-color:var(--pu);color:var(--pu)">⊕ Merge</button>
+          <button class="btn sm" id="b-auto-merge" style="display:none;background:var(--pul);border-color:var(--pu);color:var(--pu)" title="Regroupe automatiquement les règles sélectionnées partageant 2 dimensions identiques (src+dst, src+svc ou dst+svc)">⚡ Auto-Merge</button>
           <button class="btn sm" id="b-treat" style="display:none;background:var(--grl);border-color:var(--gr);color:var(--gr)">✓ Traité</button>
           <button class="btn sm pri" id="b-hub-trigger" disabled>📦 Export</button>
         </div>
@@ -2706,6 +2707,8 @@ function updateUI(){
   scnt.textContent=sc+' sel.';scnt.style.display=sc>0?'inline':'none';
   const mergeBtn=document.getElementById('b-merge');
   if(mergeBtn){mergeBtn.style.display=sc>=2?'inline-flex':'none';mergeBtn.textContent=`⊕ Merge (${sc})`;}
+  const autoMergeBtn=document.getElementById('b-auto-merge');
+  if(autoMergeBtn){autoMergeBtn.style.display=sc>=2?'inline-flex':'none';autoMergeBtn.textContent=`⚡ Auto-Merge (${sc})`;}
   const treatBtn=document.getElementById('b-treat');
   if(treatBtn){treatBtn.style.display=sc>=1?'inline-flex':'none';treatBtn.textContent=`✓ Traité (${sc})`;}
   // Treated counter in header
@@ -2781,11 +2784,7 @@ function parseFortiObjDB(text){
       curName=null;curObj={};continue;
     }
     const sm=line.match(/^set\s+(\S+)\s+(.+)$/);
-    if(sm){curObj[sm[1]]=sm[2].replace(/"/g,'').trim();}
-    // Continuation line: wrapped interface list (line starts with " inside zone section)
-    else if(section==='zone'&&line.startsWith('"')&&curObj.interface!==undefined){
-      curObj.interface+=' '+line.replace(/"/g,'').trim();
-    }
+    if(sm)curObj[sm[1]]=sm[2].replace(/"/g,'').trim();
   }
   // Build cidr lookup: cidr_string → name
   const addrIndex={};
@@ -3680,67 +3679,96 @@ function highlightTreeNode(srcip,dst,svcName,_expanded=false){
 // ================================================================
 // MERGE SELECTED NODES
 // ================================================================
+// Core merge logic — takes an explicit list of nodes, returns the merged node (does NOT mutate S.tree)
+function mergeNodeList(nodes,idx){
+  if(!nodes||nodes.length<2)return null;
+  const allSrcs=[...new Set(nodes.flatMap(n=>n.srcs))];
+  const allDsts=[...new Set(nodes.flatMap(n=>n.dsts))];
+  const allSvcs=[...new Set(nodes.flatMap(n=>n.svcs))].sort();
+  const isV6=nodes.some(n=>n.isV6);
+  const mergedSrcs=minCidrList(allSrcs,isV6);
+  const mergedDsts=minCidrList(allDsts,isV6);
+  const srcIntfSet=new Set(),dstIntfSet=new Set();
+  nodes.forEach(n=>{
+    (n.srcintfs||[n.srcintf].filter(Boolean)).forEach(i=>srcIntfSet.add(i));
+    (n.dstintfs||[n.dstintf].filter(Boolean)).forEach(i=>dstIntfSet.add(i));
+  });
+  const srcintfs=[...srcIntfSet],dstintfs=[...dstIntfSet];
+  const srcintf=srcintfs[0]||'',dstintf=dstintfs[0]||'';
+  const seenF=new Set();
+  const mergedFlows=nodes.flatMap(n=>n.flows).filter(f=>{
+    const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;
+    if(seenF.has(k))return false;seenF.add(k);return true;
+  });
+  // idx ensures unique ids when multiple merges happen in the same ms
+  const mergedNode=makeNode(`merged_${Date.now()}_${idx||0}`,mergedSrcs,mergedDsts,allSvcs,srcintf,dstintf,mergedFlows,isV6,[]);
+  mergedNode.srcs=[...new Set(mergedNode.srcs)];
+  mergedNode.dsts=[...new Set(mergedNode.dsts)];
+  mergedNode.svcs=[...new Set(mergedNode.svcs)].sort();
+  mergedNode.selected=false; // Fix: ne pas laisser sélectionné après merge
+  mergedNode.isMerged=true;
+  mergedNode.srcintfs=[...new Set(srcintfs)];
+  mergedNode.dstintfs=[...new Set(dstintfs)];
+  mergedNode._sig=null;
+  mergedNode.mergedFrom=nodes.map(n=>({...n}));
+  return mergedNode;
+}
+
 function mergeSelectedNodes(){
   if(!S.tree)return;
   const sel=getSelected(S.tree);
   if(sel.length<2){setStatus('Select at least 2 rules to merge');return;}
-
-  // Union of all srcs, dsts, svcs — fully deduplicated
-  const allSrcs=[...new Set(sel.flatMap(n=>n.srcs))];
-  const allDsts=[...new Set(sel.flatMap(n=>n.dsts))];
-  const allSvcs=[...new Set(sel.flatMap(n=>n.svcs))].sort();
-  // Also deduplicate children that are identical (same srcs+dsts+svcs)
-  // srcs/dsts/svcs already deduped by Set above
-
-  // Aggregate only network CIDRs — minCidrList() est définie au niveau module
-  const isV6=sel.some(n=>n.isV6);
-  const mergedSrcs=minCidrList(allSrcs,isV6);
-  const mergedDsts=minCidrList(allDsts,isV6);
-
-  // Collect ALL unique srcintfs and dstintfs (preserve all, not just dominant)
-  const srcIntfSet=new Set(),dstIntfSet=new Set();
-  sel.forEach(n=>{
-    // Support both old single-intf and new multi-intf nodes
-    const sIntfs=n.srcintfs||[n.srcintf].filter(Boolean);
-    const dIntfs=n.dstintfs||[n.dstintf].filter(Boolean);
-    sIntfs.forEach(i=>srcIntfSet.add(i));
-    dIntfs.forEach(i=>dstIntfSet.add(i));
-  });
-  const srcintfs=[...srcIntfSet];
-  const dstintfs=[...dstIntfSet];
-  // Keep srcintf/dstintf for backward compat (first in list)
-  const srcintf=srcintfs[0]||'';
-  const dstintf=dstintfs[0]||'';
-
-  // Merged flows (dedup)
-  const seenF=new Set();
-  const mergedFlows=sel.flatMap(n=>n.flows).filter(f=>{
-    const k=`${f.srcip}|${f.dstip}|${f.svcKey}`;
-    if(seenF.has(k))return false;seenF.add(k);return true;
-  });
-
-  const mergedNode=makeNode(
-    `merged_${Date.now()}`,mergedSrcs,mergedDsts,allSvcs,
-    srcintf,dstintf,mergedFlows,isV6,[]
-  );
-  // Ensure final deduplication of srcs/dsts/svcs/intfs on merged node
-  mergedNode.srcs=[...new Set(mergedNode.srcs)];
-  mergedNode.dsts=[...new Set(mergedNode.dsts)];
-  mergedNode.svcs=[...new Set(mergedNode.svcs)].sort();
-  mergedNode.selected=true;
-  mergedNode.isMerged=true;
-  mergedNode.srcintfs=[...new Set(srcintfs)];
-  mergedNode.dstintfs=[...new Set(dstintfs)];
-  mergedNode._sig=null; // forcer recalcul (srcs/dsts ont changé après makeNode)
-  mergedNode.mergedFrom=sel.map(n=>({...n})); // shallow copy for unmerge
-
-  // Remove selected nodes — removeNodes() est définie au niveau module
-  const selIds=new Set(sel.map(n=>n.id));
-  // Find insertion point: first selected node's position in root or its parent
-  // Simplest: insert merged node at root level after removing originals
-  S.tree=removeNodes(S.tree,selIds);
-  S.tree.unshift(mergedNode); // put merged at top
+  const mergedNode=mergeNodeList(sel,0);
+  if(!mergedNode)return;
+  S.tree=removeNodes(S.tree,new Set(sel.map(n=>n.id)));
+  S.tree.unshift(mergedNode);
   setStatus(`Merged ${sel.length} rules into 1 (perm: ${mergedNode.perm}/100)`,true);
+  renderTree();updateUI();
+}
+
+function autoMergeSelected(){
+  if(!S.tree)return;
+  const sel=getSelected(S.tree);
+  if(sel.length<2){setStatus('Select at least 2 rules for Auto-Merge');return;}
+  // Compute dimension keys for each node
+  const keyOf=new Map();
+  for(const n of sel){
+    keyOf.set(n.id,{
+      src:[...n.srcs].sort().join('§'),
+      dst:[...n.dsts].sort().join('§'),
+      svc:[...n.svcs].sort().join('§')
+    });
+  }
+  // Greedy grouping — priority: src+dst > src+svc > dst+svc
+  const grouped=new Set();
+  const groups=[];
+  function collectGroups(keyFn){
+    const buckets=new Map();
+    for(const n of sel){
+      if(grouped.has(n.id))continue;
+      const k=keyFn(keyOf.get(n.id));
+      if(!buckets.has(k))buckets.set(k,[]);
+      buckets.get(k).push(n);
+    }
+    for(const grp of buckets.values()){
+      if(grp.length>=2){groups.push(grp);grp.forEach(n=>grouped.add(n.id));}
+    }
+  }
+  collectGroups(k=>`${k.src}|||${k.dst}`); // pass 1 : même src ET dst
+  collectGroups(k=>`${k.src}|||${k.svc}`); // pass 2 : même src ET svc
+  collectGroups(k=>`${k.dst}|||${k.svc}`); // pass 3 : même dst ET svc
+  if(!groups.length){setStatus('No mergeable groups found in selection',true);return;}
+  // Build all merged nodes before mutating tree
+  const mergedNodes=groups.map((g,i)=>mergeNodeList(g,i)).filter(Boolean);
+  const allToRemove=new Set(groups.flatMap(g=>g.map(n=>n.id)));
+  S.tree=removeNodes(S.tree,allToRemove);
+  // Deselect remaining ungrouped nodes
+  function deselectAll(ns){for(const n of ns){n.selected=false;deselectAll(n.children);}}
+  deselectAll(S.tree);
+  // Insert all merged nodes at top (in group order)
+  S.tree.unshift(...mergedNodes);
+  const rulesIn=groups.reduce((a,g)=>a+g.length,0);
+  setStatus(`⚡ Auto-Merge: ${groups.length} group${groups.length>1?'s':''} · ${rulesIn} rules → ${mergedNodes.length}`,true);
   renderTree();updateUI();
 }
 
@@ -4029,6 +4057,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('b-sa').addEventListener('click',()=>{if(!S.tree)return;function sa(ns){for(const n of ns){if(n.active&&!n.expanded)n.selected=true;if(n.expanded)sa(n.children);}}sa(S.tree);renderTree();updateUI();});
   document.getElementById('b-ua').addEventListener('click',()=>{if(!S.tree)return;function ua(ns){for(const n of ns){n.selected=false;ua(n.children);}}ua(S.tree);renderTree();updateUI();});
   document.getElementById('b-merge').addEventListener('click',()=>mergeSelectedNodes());
+  document.getElementById('b-auto-merge').addEventListener('click',()=>autoMergeSelected());
 
   // ── TREAT button ──────────────────────────────────────────────
   document.getElementById('b-treat').addEventListener('click',()=>{
